@@ -27,6 +27,7 @@ const CURRENCY_INFO: Record<Currency, { symbol: string; name: string }> = {
   CAD: { symbol: 'CA$', name: 'Canadian dollars' },
   SGD: { symbol: 'S$', name: 'Singapore dollars' },
   INR: { symbol: '₹', name: 'Indian rupees' },
+  PHP: { symbol: '₱', name: 'Philippine pesos' },
 };
 
 /** How many faces show on "Who's in?" before See all. */

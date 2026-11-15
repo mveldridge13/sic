@@ -6,7 +6,7 @@ import type * as Localization from 'expo-localization';
  * assumes 2 decimal places, so zero-decimal currencies (JPY, KRW, …) are deliberately
  * excluded until the money layer supports per-currency precision.
  */
-export const CURRENCIES = ['AUD', 'USD', 'EUR', 'GBP', 'NZD', 'CAD', 'SGD', 'INR'] as const;
+export const CURRENCIES = ['AUD', 'USD', 'EUR', 'GBP', 'NZD', 'CAD', 'SGD', 'INR', 'PHP'] as const;
 
 export type Currency = (typeof CURRENCIES)[number];
 
