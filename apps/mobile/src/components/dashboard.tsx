@@ -43,6 +43,7 @@ export function HeroScreen({
   right,
   card,
   actions,
+  hideActionsTitle,
   cardTone = 'dark',
   children,
   refreshing,
@@ -64,6 +65,8 @@ export function HeroScreen({
   card?: ReactNode;
   /** QuickAction tiles (pass them bold). Shown under a "Quick actions" heading, above the card. */
   actions?: ReactNode;
+  /** Show Home's faint divider instead of the "Quick actions" heading (Groups). */
+  hideActionsTitle?: boolean;
   /** `light` when the screen has actions, so the bold tiles stand out (Home's pattern). */
   cardTone?: CardTone;
   children?: ReactNode;
@@ -155,7 +158,13 @@ export function HeroScreen({
         <View style={[column, { gap: space.xl }]}>
           {actions ? (
             <View style={{ gap: space.md }}>
-              <SectionTitle title="Quick actions" />
+              {hideActionsTitle ? (
+                <Gutter>
+                  <View style={{ height: StyleSheet.hairlineWidth * 2, backgroundColor: c.border }} />
+                </Gutter>
+              ) : (
+                <SectionTitle title="Quick actions" />
+              )}
               <ActionRow>{actions}</ActionRow>
             </View>
           ) : null}

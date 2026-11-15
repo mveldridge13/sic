@@ -178,6 +178,13 @@ export default function BalanceBreakdownScreen() {
     const memberError = removeMember.error ?? transferOwnership.error ?? setCoOwner.error;
     const isCoOwner = group.roles[otherId] === 'admin';
     const isGuest = !!data.people[otherId]?.isGuest;
+    // Who pays whom to settle, and how much of that is already recorded and waiting to be confirmed.
+    const iPay = pair.total < 0;
+    const payerId = iPay ? myId : otherId;
+    const receiverId = iPay ? otherId : myId;
+    const sent = data.pendingPayments
+      .filter((p) => p.groupId === group.id && p.fromUserId === payerId && p.toUserId === receiverId)
+      .reduce((sum, p) => sum + p.amount, 0);
     // PayID is Australian: only offered in AUD groups, and only the group owner's is shared.
     const theirPayId = group.currency === PAYID_CURRENCY && group.roles[otherId] === 'owner' ? data.payIds[otherId] : undefined;
 
@@ -308,20 +315,36 @@ export default function BalanceBreakdownScreen() {
 
         <Gutter>
           {pair.total !== 0 ? (
-            <Button
-              label={pair.total < 0 ? `Record a payment to ${they}` : `Record a payment from ${they}`}
-              onPress={() =>
-                router.push({
-                  pathname: '/settle',
-                  params: {
-                    groupId: group.id,
-                    from: pair.total < 0 ? myId : otherId,
-                    to: pair.total < 0 ? otherId : myId,
-                    amount: String(Math.abs(pair.total)),
-                  },
-                })
-              }
-            />
+            sent >= Math.abs(pair.total) ? (
+              // Already recorded in full, waiting for the receiver: don't offer to record it again.
+              <Button kind="secondary" disabled onPress={() => {}} label={iPay ? `⏳ Waiting for ${they} to confirm` : '⏳ Waiting for you to confirm'} />
+            ) : (
+              <Button
+                label={
+                  sent > 0
+                    ? `Record the rest (${money(Math.abs(pair.total) - sent)})`
+                    : iPay
+                      ? `Record a payment to ${they}`
+                      : `Record a payment from ${they}`
+                }
+                onPress={() =>
+                  router.push({
+                    pathname: '/settle',
+                    params: {
+                      groupId: group.id,
+                      from: payerId,
+                      to: receiverId,
+                      amount: String(Math.abs(pair.total) - sent),
+                    },
+                  })
+                }
+              />
+            )
+          ) : null}
+          {sent > 0 ? (
+            <Text variant="caption" muted>
+              {money(sent)} recorded, waiting for {iPay ? they : 'you'} to confirm. It counts once {iPay ? 'they confirm' : 'you confirm'}.
+            </Text>
           ) : null}
           {isGuest && isMember ? (
             <>

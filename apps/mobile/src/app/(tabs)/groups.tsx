@@ -212,6 +212,7 @@ export default function GroupsScreen() {
         nav="tab"
         title="Your groups"
         subtitle={summaries.length ? `${summaries.length} ${summaries.length === 1 ? 'group' : 'groups'}` : 'No groups yet'}
+        hideActionsTitle
         actions={
           <>
             <QuickAction bold icon="group-add" label="New group" onPress={() => router.push('/new-group')} />
