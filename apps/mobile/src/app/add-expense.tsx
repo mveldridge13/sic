@@ -12,7 +12,7 @@ import {
   type SplitMethod,
 } from '@tally/shared';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, TextInput, View, type TextInputInstance } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -37,6 +37,7 @@ import {
   type RecurringExpense,
 } from '@/lib/data';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
+import { attachReceipt, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
 import { brand, groupColor, radius, space, type, useColors } from '@/theme';
 
@@ -374,9 +375,24 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
   const [values, setValues] = useState<Record<string, string>>(initial.values);
   const [items, setItems] = useState<ItemRow[]>(initial.items);
   const [rest, setRest] = useState<ItemsRest>(initial.rest);
+  const [receiptPath, setReceiptPath] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+  // A photo that's replaced, dropped, or left behind when the form closes is deleted, unless it was saved.
+  const keptReceipt = useRef<string | null>(null);
+  useEffect(() => {
+    if (!receiptPath) return;
+    return () => {
+      if (keptReceipt.current !== receiptPath) discardReceipt(receiptPath);
+    };
+  }, [receiptPath]);
   const updateItem = (key: number, change: Partial<ItemRow>) =>
     setItems((list) => list.map((i) => (i.key === key ? { ...i, ...change } : i)));
   function pickGroup(id: string) {
+    // A scanned photo is stored under its group, so it can't move to another one.
+    setReceiptPath(null);
+    setScanNote(null);
     setGroupId(id);
     setPayerId(myId);
     setIncluded({});
@@ -389,13 +405,53 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setSeenNewGroup(params.newGroupId);
     pickGroup(params.newGroupId);
   }
-  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | null>(null);
+  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | null>(null);
   // Close the keyboard (and wait until it's gone) before a sheet slides up. Otherwise the keyboard
   // closing tugs the sheet back down mid-slide, which shows as a flicker.
-  const openSheet = async (name: 'split' | 'group' | 'recurring') => {
+  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan') => {
     if (KeyboardController.isVisible()) await KeyboardController.dismiss();
     setSheet(name);
   };
+
+  // Receipt scanning: the photo is uploaded, read, and fills in the form as an items split. It's
+  // put on the expense when it's saved, and deleted again if the form is closed without saving.
+  async function scan(from: 'camera' | 'library') {
+    if (!group) return;
+    setSheet(null);
+    setScanError(null);
+    setScanNote(null);
+    try {
+      const photo = await pickReceiptPhoto(from);
+      if (!photo) return;
+      setScanning(true);
+      const path = await uploadReceipt(photo, group.id);
+      setReceiptPath(path);
+      const read = await scanReceipt(path);
+      if (read.merchant && !description.trim()) setDescription(read.merchant);
+      if (read.total) setAmountText(centsToDecimalString(read.total));
+      if (read.items.length > 0) {
+        setMethod('items');
+        setItems(read.items.map((i) => ({ key: nextItemKey++, name: i.name, price: centsToDecimalString(i.amount), userIds: [] })));
+        // Tax, tip and service charge are shared in proportion to what each person had.
+        setRest('proportional');
+      }
+      const notes = [
+        read.currency && read.currency !== group.currency
+          ? `This receipt looks like it’s in ${read.currency}, but ${group.name} uses ${group.currency}. Amounts haven’t been converted.`
+          : null,
+        !read.total ? 'Couldn’t find the total. Please enter it.' : null,
+        read.items.length > 0 ? 'Check the items, then tap who had each one.' : 'Couldn’t read the items. Choose how to split it below.',
+      ].filter(Boolean);
+      setScanNote(notes.join(' '));
+      buzz.success();
+      if (read.items.length > 0) void openSheet('split');
+    } catch (e) {
+      setScanError(e instanceof Error ? e.message : 'Couldn’t read this photo. Please try again.');
+    } finally {
+      setScanning(false);
+    }
+  }
+  const canScan = !isEdit && !schedule && !recurring.on && !!group;
 
   // Open the keypad once the form has slid up, not during the animation.
   const amountRef = useRef<TextInputInstance>(null);
@@ -577,13 +633,14 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
           // The amount for a bill that came due: save it as a normal expense, then mark the bill done.
           const id = await createExpense.mutateAsync({ ...input, groupId: group.id });
           await completeRecurringDue(dueBill.id, id);
+          await keepReceipt(id);
         } else if (recurring.on) {
           // Starting today: today's expense is saved now and counts as the first one.
           const startsToday = recurring.start === todayDate();
           const firstId = startsToday ? await createExpense.mutateAsync({ ...input, groupId: group.id }) : undefined;
           await createRecurring.mutateAsync({ ...recurringInput, groupId: group.id, startDate: recurring.start, firstExpenseId: firstId });
         } else {
-          await createExpense.mutateAsync({ ...input, groupId: group.id });
+          await keepReceipt(await createExpense.mutateAsync({ ...input, groupId: group.id }));
         }
         buzz.success();
         router.back();
@@ -593,6 +650,17 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
         setSaving(false);
       }
     })();
+  }
+
+  /** Put the scanned photo on the saved expense. The expense is saved either way. */
+  async function keepReceipt(expenseId: string) {
+    if (!receiptPath) return;
+    try {
+      await attachReceipt(expenseId, receiptPath);
+      keptReceipt.current = receiptPath;
+    } catch {
+      // The photo is cleaned up with the form; the expense itself is fine.
+    }
   }
 
   const payerLabel = payerId === myId ? 'you' : name(payerId);
@@ -698,6 +766,31 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
         />
       </View>
 
+      {canScan ? (
+        <View style={{ alignItems: 'center', marginTop: space.md }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={receiptPath ? 'Scan a different receipt' : 'Scan a receipt'}
+            accessibilityState={{ busy: scanning }}
+            disabled={scanning}
+            onPress={() => void openSheet('scan')}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: space.sm,
+              paddingVertical: 6,
+              paddingHorizontal: space.md,
+              minHeight: 38,
+              borderRadius: radius.pill,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+            }}>
+            <Text variant="label" color={brand.onDeep}>
+              {scanning ? 'Reading receipt…' : receiptPath ? '✓ Receipt added · Scan again' : '📷 Scan receipt'}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       {/* Description (needed to save) */}
       <View style={{ marginTop: space.xl, gap: space.sm }}>
         <Text variant="label" color={needsDescription ? brand.coral : brand.onDeep} style={{ textAlign: 'center', fontWeight: '700' }}>
@@ -737,6 +830,8 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       <Stack.Screen options={{ headerShown: false }} />
 
       <Gutter>
+        {scanError ? <Notice>{scanError}</Notice> : null}
+        {scanNote ? <Notice tone="info">{scanNote}</Notice> : null}
         {/* Who paid and how it's split, in one line. Tap to change. */}
         <Pressable
           accessibilityRole="button"
@@ -1007,6 +1102,15 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
             </Text>
           ) : null}
           <Button label="Done" onPress={() => setSheet(null)} />
+        </View>
+      </Sheet>
+
+      {/* Take or pick a photo of the receipt */}
+      <Sheet visible={sheet === 'scan'} onClose={() => setSheet(null)} title="Scan a receipt">
+        <View style={{ gap: space.sm }}>
+          <Text muted>Get the whole receipt in the photo, flat and in good light. You can check everything before you save.</Text>
+          <Button label="Take a photo" onPress={() => void scan('camera')} />
+          <Button label="Choose from photos" kind="secondary" onPress={() => void scan('library')} />
         </View>
       </Sheet>
 

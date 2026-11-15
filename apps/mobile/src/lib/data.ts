@@ -60,6 +60,8 @@ export interface Expense {
   splits: ExpenseSplit[];
   /** The bill's lines when split by item; null for the other methods. */
   items: SplitItem[] | null;
+  /** Storage path of the receipt photo, if one was scanned. */
+  receiptPath: string | null;
   occurredAt: string;
   createdAt: string;
   updatedAt: string;
@@ -151,7 +153,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
         `id, name, currency, icon, created_at,
          group_members ( user_id, role, left_at, profiles ( id, name, is_guest ) ),
          expenses ( id, description, amount_cents, payer_id, created_by, split_method, occurred_at,
-                    created_at, updated_at, deleted_at, items,
+                    created_at, updated_at, deleted_at, items, receipt_path,
                     expense_splits ( user_id, amount_cents, weight ) ),
          settlements ( id, from_user_id, to_user_id, amount_cents, occurred_at, status, created_by, created_at, note, replaces_id )`,
       )
@@ -229,6 +231,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
         method: e.split_method,
         splits: e.expense_splits.map((s) => ({ userId: s.user_id, amount: s.amount_cents, weight: s.weight })),
         items: Array.isArray(e.items) ? (e.items as RpcItem[]).map(fromRpcItem) : null,
+        receiptPath: e.receipt_path,
         occurredAt: e.occurred_at,
         createdAt: e.created_at,
         updatedAt: e.updated_at,

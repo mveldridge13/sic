@@ -1,0 +1,137 @@
+import { parseToCents } from '@tally/shared';
+import { useQuery } from '@tanstack/react-query';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
+import { FunctionsHttpError } from '@supabase/supabase-js';
+
+import { supabase } from './supabase';
+
+/** What the scan-receipt edge function reads off a photo. Empty strings mean "not on the receipt". */
+export interface ReceiptScan {
+  is_receipt: boolean;
+  merchant: string;
+  date: string;
+  currency: string;
+  total: string;
+  items: { name: string; price: string }[];
+}
+
+/** The scan, with prices turned into cents and anything unreadable dropped. */
+export interface ReadReceipt {
+  merchant: string;
+  currency: string | null;
+  total: number | null;
+  items: { name: string; amount: number }[];
+}
+
+// Claude reads images up to about this size on the long side; bigger only costs more to send.
+const MAX_SIDE = 1568;
+
+function cents(text: string): number | null {
+  try {
+    const value = parseToCents(text);
+    return value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ask for the camera or photos, then let the person take or pick one. Null if they cancel. */
+export async function pickReceiptPhoto(from: 'camera' | 'library'): Promise<ImagePicker.ImagePickerAsset | null> {
+  const permission =
+    from === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    throw new Error(
+      from === 'camera'
+        ? 'Tally needs the camera to scan a receipt. You can turn it on in your phone’s Settings.'
+        : 'Tally needs your photos to pick a receipt. You can turn it on in your phone’s Settings.',
+    );
+  }
+  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1 };
+  const result = from === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
+  return result.canceled ? null : (result.assets[0] ?? null);
+}
+
+function randomId(): string {
+  const hex = '0123456789abcdef';
+  let id = '';
+  for (let i = 0; i < 36; i++) id += i === 8 || i === 13 || i === 18 || i === 23 ? '-' : hex[Math.floor(Math.random() * 16)];
+  return id;
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/** Shrink the photo and upload it to the group's receipts. Returns its storage path. */
+export async function uploadReceipt(photo: ImagePicker.ImagePickerAsset, groupId: string): Promise<string> {
+  const context = ImageManipulator.manipulate(photo.uri);
+  if (Math.max(photo.width, photo.height) > MAX_SIDE) {
+    context.resize(photo.width >= photo.height ? { width: MAX_SIDE } : { height: MAX_SIDE });
+  }
+  const image = await context.renderAsync();
+  const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
+  if (!saved.base64) throw new Error('Couldn’t prepare the photo. Please try again.');
+
+  const path = `${groupId}/${randomId()}.jpg`;
+  const { error } = await supabase.storage.from('receipts').upload(path, base64ToBytes(saved.base64), { contentType: 'image/jpeg' });
+  if (error) throw new Error('Couldn’t upload the photo. Check your connection and try again.');
+  return path;
+}
+
+/** Read an uploaded receipt. Throws with a message that's fine to show. */
+export async function scanReceipt(path: string): Promise<ReadReceipt> {
+  const { data, error } = await supabase.functions.invoke<ReceiptScan>('scan-receipt', { body: { path } });
+  if (error) {
+    let message = 'Couldn’t read this photo. Please try again.';
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const body = (await error.context.json()) as { error?: string };
+        if (body.error) message = body.error;
+      } catch {
+        // Keep the general message.
+      }
+    }
+    throw new Error(message);
+  }
+  if (!data || !data.is_receipt) throw new Error('That doesn’t look like a receipt. Try another photo with the whole bill in view.');
+
+  const items = data.items
+    .map((i) => ({ name: i.name.trim().slice(0, 60), amount: cents(i.price) }))
+    .filter((i): i is { name: string; amount: number } => !!i.name && i.amount !== null)
+    .slice(0, 100);
+  return {
+    merchant: data.merchant.trim().slice(0, 120),
+    currency: /^[A-Z]{3}$/.test(data.currency) ? data.currency : null,
+    total: cents(data.total),
+    items,
+  };
+}
+
+/** Put a receipt on a saved expense. */
+export async function attachReceipt(expenseId: string, path: string): Promise<void> {
+  const { error } = await supabase.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
+  if (error) throw error;
+}
+
+/** Remove a photo that ended up not being used (the form was closed, or another photo replaced it). */
+export function discardReceipt(path: string): void {
+  void supabase.storage.from('receipts').remove([path]);
+}
+
+/** A short-lived link to show a receipt photo. */
+export function useReceiptUrl(path: string | null) {
+  return useQuery({
+    queryKey: ['receipt-url', path],
+    enabled: !!path,
+    staleTime: 50 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from('receipts').createSignedUrl(path!, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+}

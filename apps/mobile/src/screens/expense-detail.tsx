@@ -1,13 +1,17 @@
 import { centsToDecimalString, formatMoney, inferItemsRest, itemsSubtotal } from '@tally/shared';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Modal, Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardFigure, Gutter, HeroScreen, QuickAction, SectionTitle, StatRow, TotalPill } from '@/components/dashboard';
 import { Avatar, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
 import { useDeleteExpense, useExpenseHistory, useNameOf, useTallyData } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
-import { space, useColors } from '@/theme';
+import { useReceiptUrl } from '@/lib/receipts';
+import { radius, space, useColors } from '@/theme';
 
 const METHOD_LABEL = {
   equal: 'Split equally',
@@ -178,6 +182,8 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
         </View>
       ) : null}
 
+      {expense.receiptPath ? <ReceiptPhoto path={expense.receiptPath} /> : null}
+
       <View style={{ gap: space.md }}>
         <SectionTitle title={METHOD_LABEL[expense.method]} />
         <Gutter>
@@ -253,5 +259,54 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
         </Gutter>
       ) : null}
     </HeroScreen>
+  );
+}
+
+/** The scanned receipt: a preview that opens full screen. */
+function ReceiptPhoto({ path }: { path: string }) {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+  const url = useReceiptUrl(path);
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ gap: space.md }}>
+      <SectionTitle title="Receipt" />
+      <Gutter>
+        {url.data ? (
+          <Pressable accessibilityRole="imagebutton" accessibilityLabel="Receipt photo. Tap to view full screen" onPress={() => setOpen(true)}>
+            <Image
+              source={{ uri: url.data }}
+              contentFit="cover"
+              contentPosition="top"
+              style={{ width: '100%', height: 220, borderRadius: radius.lg, backgroundColor: c.surfaceAlt }}
+            />
+          </Pressable>
+        ) : (
+          <Text muted>{url.isError ? 'Couldn’t load the receipt photo.' : 'Loading receipt…'}</Text>
+        )}
+      </Gutter>
+      <Modal visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          {url.data ? <Image source={{ uri: url.data }} contentFit="contain" style={{ flex: 1 }} /> : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close receipt"
+            onPress={() => setOpen(false)}
+            style={{
+              position: 'absolute',
+              top: insets.top + space.sm,
+              right: space.lg,
+              paddingVertical: space.sm,
+              paddingHorizontal: space.lg,
+              borderRadius: radius.pill,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+            }}>
+            <Text variant="label" color="#fff">
+              Close
+            </Text>
+          </Pressable>
+        </View>
+      </Modal>
+    </View>
   );
 }
