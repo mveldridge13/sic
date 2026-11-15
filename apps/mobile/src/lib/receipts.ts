@@ -1,7 +1,8 @@
 import { parseToCents } from '@tally/shared';
 import { useQuery } from '@tanstack/react-query';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
+import { requireOptionalNativeModule } from 'expo';
+import type * as Manipulator from 'expo-image-manipulator';
+import type * as ImagePicker from 'expo-image-picker';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
 import { supabase } from './supabase';
@@ -24,6 +25,18 @@ export interface ReadReceipt {
   items: { name: string; amount: number }[];
 }
 
+/**
+ * Whether this build has the camera and image packages. An app built before receipt scanning was
+ * added doesn't, and loading them there would crash, so they're only loaded when scanning.
+ */
+export const canScanReceipts =
+  !!requireOptionalNativeModule('ExponentImagePicker') && !!requireOptionalNativeModule('ExpoImageManipulator');
+
+/* eslint-disable @typescript-eslint/no-require-imports */
+const picker = () => require('expo-image-picker') as typeof ImagePicker;
+const manipulator = () => require('expo-image-manipulator') as typeof Manipulator;
+/* eslint-enable @typescript-eslint/no-require-imports */
+
 // Claude reads images up to about this size on the long side; bigger only costs more to send.
 const MAX_SIDE = 1568;
 
@@ -38,6 +51,8 @@ function cents(text: string): number | null {
 
 /** Ask for the camera or photos, then let the person take or pick one. Null if they cancel. */
 export async function pickReceiptPhoto(from: 'camera' | 'library'): Promise<ImagePicker.ImagePickerAsset | null> {
+  if (!canScanReceipts) throw new Error('Update Tally to scan receipts.');
+  const ImagePicker = picker();
   const permission =
     from === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
@@ -68,6 +83,7 @@ function base64ToBytes(base64: string): Uint8Array {
 
 /** Shrink the photo and upload it to the group's receipts. Returns its storage path. */
 export async function uploadReceipt(photo: ImagePicker.ImagePickerAsset, groupId: string): Promise<string> {
+  const { ImageManipulator, SaveFormat } = manipulator();
   const context = ImageManipulator.manipulate(photo.uri);
   if (Math.max(photo.width, photo.height) > MAX_SIDE) {
     context.resize(photo.width >= photo.height ? { width: MAX_SIDE } : { height: MAX_SIDE });

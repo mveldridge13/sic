@@ -37,7 +37,7 @@ import {
   type RecurringExpense,
 } from '@/lib/data';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
-import { attachReceipt, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
+import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
 import { brand, groupColor, radius, space, type, useColors } from '@/theme';
 
@@ -451,7 +451,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       setScanning(false);
     }
   }
-  const canScan = !isEdit && !schedule && !recurring.on && !!group;
+  const canScan = canScanReceipts && !isEdit && !schedule && !recurring.on && !!group;
 
   // Open the keypad once the form has slid up, not during the animation.
   const amountRef = useRef<TextInputInstance>(null);

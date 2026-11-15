@@ -8,8 +8,10 @@
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 
-const MODEL = Deno.env.get('RECEIPT_MODEL') ?? 'claude-opus-5-5';
-const anthropic = new Anthropic();
+// Secret names are matched exactly, so accept them in either case.
+const env = (name: string) => Deno.env.get(name) ?? Deno.env.get(name.toLowerCase());
+const MODEL = env('RECEIPT_MODEL') ?? 'claude-opus-5-5';
+const anthropic = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') });
 
 const PATH_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f-]{36}\.jpg$/;
 
