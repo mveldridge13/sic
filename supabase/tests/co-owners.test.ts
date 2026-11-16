@@ -53,10 +53,12 @@ describe('Co-owners', () => {
     const split3 = (total: number) => [alice, bob, cara].map((p) => ({ user_id: p.id, amount_cents: total / 3 }));
     await alice.client.rpc('create_expense', { p_group_id: groupId, p_description: 'Hotel', p_amount_cents: 9000, p_payer_id: alice.id, p_split_method: 'equal', p_splits: split3(9000) });
     await cara.client.rpc('create_expense', { p_group_id: groupId, p_description: 'Fuel', p_amount_cents: 3000, p_payer_id: cara.id, p_split_method: 'equal', p_splits: split3(3000) });
+    // Bob isn't in this one, so as a plain member he never sees it.
+    await alice.client.rpc('create_expense', { p_group_id: groupId, p_description: 'Snacks', p_amount_cents: 600, p_payer_id: alice.id, p_split_method: 'equal', p_splits: [alice, cara].map((p) => ({ user_id: p.id, amount_cents: 300 })) });
   });
 
-  it('a member sees only their own items before becoming a co-owner', async () => {
-    expect(await descriptions(bob)).toEqual([]);
+  it('a member sees only expenses they are in before becoming a co-owner', async () => {
+    expect(await descriptions(bob)).toEqual(['Fuel', 'Hotel']);
     expect((await summary(bob)).balances).toHaveLength(1);
   });
 
@@ -69,11 +71,11 @@ describe('Co-owners', () => {
     expect((await setCoOwner(alice, bob.id, true)).error).toBeNull();
     const s = await summary(bob);
     expect(s.role).toBe('admin');
-    expect(await descriptions(bob)).toEqual(['Fuel', 'Hotel']);
+    expect(await descriptions(bob)).toEqual(['Fuel', 'Hotel', 'Snacks']);
     expect(s.balances).toHaveLength(3);
     expect(s.transfers).toEqual((await summary(alice)).transfers);
-    // Cara, a plain member, still sees only her own.
-    expect(await descriptions(cara)).toEqual(['Fuel']);
+    // Cara, a plain member, sees the expenses she's in (all three here).
+    expect(await descriptions(cara)).toEqual(['Fuel', 'Hotel', 'Snacks']);
   });
 
   it('a co-owner can send reminders but cannot manage the group', async () => {
@@ -91,7 +93,7 @@ describe('Co-owners', () => {
   it('removing co-owner turns them back into a member', async () => {
     expect((await setCoOwner(alice, bob.id, false)).error).toBeNull();
     expect((await summary(bob)).role).toBe('member');
-    expect(await descriptions(bob)).toEqual([]);
+    expect(await descriptions(bob)).toEqual(['Fuel', 'Hotel']);
   });
 
   it('notifies the person when they are made or removed as co-owner, once per change', async () => {

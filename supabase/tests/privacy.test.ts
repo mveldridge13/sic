@@ -70,12 +70,12 @@ describe('Member privacy', () => {
     expect(payments).toHaveLength(1);
   });
 
-  it('a member reads only the expenses and payments they added', async () => {
+  it('a member reads the expenses they are in, and only the payments they added', async () => {
+    // Bob is in all three splits, so he can read all three (and their splits), but not Cara's payment.
     const { data: bobs } = await bob.client.from('expenses').select('description').eq('group_id', groupId);
-    expect(bobs!.map((e) => e.description)).toEqual(['Internet']);
+    expect(bobs!.map((e) => e.description).sort()).toEqual(['Internet', 'Power', 'Rent']);
     expect((await bob.client.from('settlements').select('id').eq('group_id', groupId)).data).toEqual([]);
-    // Splits of hidden expenses are hidden too.
-    expect((await bob.client.from('expense_splits').select('expense_id').eq('expense_id', caraExpense)).data).toEqual([]);
+    expect((await bob.client.from('expense_splits').select('expense_id').eq('expense_id', caraExpense)).data).toHaveLength(3);
 
     const { data: caras } = await cara.client.from('settlements').select('id').eq('group_id', groupId);
     expect(caras!.map((s) => s.id)).toEqual([carasPaymentToAlice]);
@@ -127,5 +127,34 @@ describe('Member privacy', () => {
   it('members no longer get everyone\'s balances from group_balances', async () => {
     expect((await bob.client.rpc('group_balances', { p_group_id: groupId })).data).toEqual([]);
     expect((await alice.client.rpc('group_balances', { p_group_id: groupId })).data).toHaveLength(3);
+  });
+
+  it("a member can't read an expense they're not in, or its split", async () => {
+    const { data: e } = await alice.client.rpc('create_expense', {
+      p_group_id: groupId,
+      p_description: 'Gift',
+      p_amount_cents: 2000,
+      p_payer_id: alice.id,
+      p_split_method: 'equal',
+      p_splits: [alice, cara].map((p) => ({ user_id: p.id, amount_cents: 1000 })),
+    });
+    expect((await bob.client.from('expenses').select('id').eq('id', e)).data).toEqual([]);
+    expect((await bob.client.from('expense_splits').select('user_id').eq('expense_id', e)).data).toEqual([]);
+    expect((await cara.client.from('expenses').select('id').eq('id', e)).data).toHaveLength(1);
+  });
+
+  it("being in the split lets a member read an expense, not change or delete it", async () => {
+    const { error: editError } = await bob.client.rpc('update_expense', {
+      p_expense_id: caraExpense,
+      p_description: 'Changed',
+      p_amount_cents: 6000,
+      p_payer_id: cara.id,
+      p_split_method: 'equal',
+      p_splits: [alice, bob, cara].map((p) => ({ user_id: p.id, amount_cents: 2000 })),
+      p_occurred_at: new Date().toISOString(),
+    });
+    expect(editError).not.toBeNull();
+    expect((await bob.client.rpc('delete_expense', { p_expense_id: caraExpense })).error).not.toBeNull();
+    expect((await cara.client.from('expenses').select('description').eq('id', caraExpense).single()).data?.description).toBe('Power');
   });
 });

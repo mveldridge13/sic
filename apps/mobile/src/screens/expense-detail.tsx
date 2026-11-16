@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CardFigure, Gutter, HeroScreen, QuickAction, SectionTitle, StatRow, TotalPill } from '@/components/dashboard';
 import { Avatar, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
-import { useDeleteExpense, useExpenseHistory, useNameOf, useTallyData } from '@/lib/data';
+import { seesEverything, useDeleteExpense, useExpenseHistory, useNameOf, useTallyData } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
 import { useReceiptUrl } from '@/lib/receipts';
 import { radius, space, useColors } from '@/theme';
@@ -58,6 +58,9 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
   }
 
   const money = (cents: number) => formatMoney(cents, group.currency);
+  // People in the split can view someone else's expense; only its owner, co-owners and whoever
+  // added it can change it (the database enforces the same).
+  const canEdit = seesEverything(group.myRole) || expense.createdById === myId;
   const myShare = expense.splits.find((s) => s.userId === myId)?.amount ?? 0;
   // Effect on your balance: what you paid minus your share.
   const myEffect = (expense.payerId === myId ? expense.amount : 0) - myShare;
@@ -116,13 +119,15 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
       title={expense.description}
       actions={
         <>
-          <QuickAction
-            icon="edit"
-            label="Edit"
-            onPress={() => router.push({ pathname: '/add-expense', params: { expenseId: expense.id } })}
-          />
+          {canEdit ? (
+            <QuickAction
+              icon="edit"
+              label="Edit"
+              onPress={() => router.push({ pathname: '/add-expense', params: { expenseId: expense.id } })}
+            />
+          ) : null}
           <QuickAction bold icon="groups" label="Group" onPress={() => router.push(`/group/${group.id}`)} />
-          <QuickAction bold icon="delete-outline" label="Delete" danger onPress={confirmDelete} />
+          {canEdit ? <QuickAction bold icon="delete-outline" label="Delete" danger onPress={confirmDelete} /> : null}
         </>
       }
       cardTone="light"

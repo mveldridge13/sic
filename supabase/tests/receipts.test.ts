@@ -31,14 +31,14 @@ describe('Receipts', () => {
   const upload = (who: typeof alice, path: string) =>
     who.client.storage.from('receipts').upload(path, photo, { contentType: 'image/jpeg' });
   const canRead = async (who: typeof alice, path: string) => !(await who.client.storage.from('receipts').download(path)).error;
-  const addExpense = async (who: typeof alice) => {
+  const addExpense = async (who: typeof alice, people = [alice, bob, cara]) => {
     const { data, error } = await who.client.rpc('create_expense', {
       p_group_id: groupId,
       p_description: 'Dinner',
       p_amount_cents: 3000,
       p_payer_id: who.id,
       p_split_method: 'equal',
-      p_splits: [alice, bob, cara].map((p) => ({ user_id: p.id, amount_cents: 1000 })),
+      p_splits: people.map((p) => ({ user_id: p.id, amount_cents: 3000 / people.length })),
     });
     if (error) throw error;
     return data as string;
@@ -62,7 +62,7 @@ describe('Receipts', () => {
     expect((await upload(bob, `not-a-group/${uuid()}.jpg`)).error).not.toBeNull();
   });
 
-  it('shows a photo to whoever can see its expense, and keeps it from other members', async () => {
+  it('shows a photo to the owner and everyone in the split, and keeps it from everyone else', async () => {
     const path = `${groupId}/${uuid()}.jpg`;
     await upload(bob, path);
     // Before it's on an expense, only the uploader sees it.
@@ -73,10 +73,18 @@ describe('Receipts', () => {
     expect((await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path })).error).toBeNull();
     expect((await bob.client.from('expenses').select('receipt_path').eq('id', expenseId).single()).data?.receipt_path).toBe(path);
 
-    // Member privacy: the owner sees Bob's expense, Cara doesn't.
+    // The owner and Cara (in the split) see it; an outsider doesn't.
     expect(await canRead(alice, path)).toBe(true);
-    expect(await canRead(cara, path)).toBe(false);
+    expect(await canRead(cara, path)).toBe(true);
     expect(await canRead(outsider, path)).toBe(false);
+
+    // On an expense Cara isn't in, she can't see the photo.
+    const privatePath = `${groupId}/${uuid()}.jpg`;
+    await upload(bob, privatePath);
+    const bobAndAlice = await addExpense(bob, [alice, bob]);
+    await bob.client.rpc('set_expense_receipt', { p_expense_id: bobAndAlice, p_path: privatePath });
+    expect(await canRead(alice, privatePath)).toBe(true);
+    expect(await canRead(cara, privatePath)).toBe(false);
   });
 
   it('only attaches your own photo from the same group', async () => {
@@ -106,7 +114,7 @@ describe('Receipts', () => {
     await alice.client.storage.from('receipts').remove([path]);
     expect(await canRead(bob, path)).toBe(true);
 
-    // Once the owner deletes the expense, she can, and Cara (who can't see it) still can't.
+    // Once the owner deletes the expense, she can; Cara (in the split, but not an editor) still can't.
     expect((await alice.client.rpc('delete_expense', { p_expense_id: expenseId })).error).toBeNull();
     await cara.client.storage.from('receipts').remove([path]);
     expect(await canRead(bob, path)).toBe(true);
