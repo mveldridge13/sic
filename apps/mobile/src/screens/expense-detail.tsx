@@ -68,7 +68,8 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
   function confirmDelete() {
     Alert.alert(
       'Delete this expense?',
-      `“${expense!.description}” (${money(expense!.amount)}) will be removed and everyone’s balances will update. A copy is kept in the history.`,
+      `“${expense!.description}” (${money(expense!.amount)}) will be removed and everyone’s balances will update. A copy is kept in the history.` +
+        (expense!.receiptPath ? '\n\nThe receipt photo attached to it will be deleted for good and can’t be recovered.' : ''),
       [
         { text: 'Cancel', style: 'cancel' },
         {

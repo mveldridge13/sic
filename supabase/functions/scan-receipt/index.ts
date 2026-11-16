@@ -3,14 +3,14 @@
 // The app uploads the photo to the private "receipts" bucket first, then calls this with its path.
 // The photo is downloaded as the signed-in user, so storage rules decide whether they may read it.
 //
-// Secrets: ANTHROPIC_API_KEY (required), RECEIPT_MODEL (optional, defaults to claude-opus-5-5).
+// Secrets: ANTHROPIC_API_KEY (required), RECEIPT_MODEL (optional, defaults to claude-haiku-5-5).
 
 import Anthropic from 'npm:@anthropic-ai/sdk@1.3.0';
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 
 // Secret names are matched exactly, so accept them in either case.
 const env = (name: string) => Deno.env.get(name) ?? Deno.env.get(name.toLowerCase());
-const MODEL = env('RECEIPT_MODEL') ?? 'claude-opus-5-5';
+const MODEL = env('RECEIPT_MODEL') ?? 'claude-haiku-5-5';
 const anthropic = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') });
 // Server-side fallback (another model retries if this one declines) exists only on some models;
 // Haiku rejects the parameter, so it's sent only where it's supported.
