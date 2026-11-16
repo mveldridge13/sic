@@ -12,6 +12,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 const env = (name: string) => Deno.env.get(name) ?? Deno.env.get(name.toLowerCase());
 const MODEL = env('RECEIPT_MODEL') ?? 'claude-opus-5-5';
 const anthropic = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') });
+// Server-side fallback (another model retries if this one declines) exists only on some models;
+// Haiku rejects the parameter, so it's sent only where it's supported.
+const FALLBACK = /^claude-(opus-5|fable-5|mythos-5|sonnet-5-5)/.test(MODEL);
 
 const PATH_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f-]{36}\.jpg$/;
 
@@ -81,18 +84,25 @@ Deno.serve(async (req) => {
 
   // Counts toward today's allowance (and checks the caller is signed in).
   const claim = await supabase.rpc('claim_receipt_scan');
-  if (claim.error) return reply(claim.error.code === 'PT429' ? 429 : 401, { error: claim.error.message });
+  if (claim.error) {
+    const status = claim.error.code === 'PT429' ? 429 : claim.error.code === 'PT403' ? 403 : 401;
+    return reply(status, { error: claim.error.message });
+  }
 
   const file = await supabase.storage.from('receipts').download(path);
   if (file.error || !file.data) return reply(404, { error: 'Couldn’t find that photo. Please try again.' });
-  const image = toBase64(new Uint8Array(await file.data.arrayBuffer()));
+  const bytes = new Uint8Array(await file.data.arrayBuffer());
+  if (bytes.length < 1000) {
+    console.error('Receipt photo is empty or too small', path, bytes.length);
+    return reply(422, { error: 'The photo didn’t upload properly. Please try again. (empty photo)' });
+  }
+  const image = toBase64(bytes);
 
   try {
     const response = await anthropic.beta.messages.create({
       model: MODEL,
       max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
+      ...(FALLBACK ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
       output_config: { effort: 'low', format: { type: 'json_schema', schema: SCHEMA } },
       system: SYSTEM,
       messages: [
@@ -114,8 +124,9 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return reply(503, { error: 'Scanning is busy right now. Please try again in a minute.' });
     if (e instanceof Anthropic.APIError) {
-      console.error('Claude API error', e.status, e.message);
-      return reply(502, { error: 'Couldn’t read this photo. Please try again.' });
+      console.error('Claude API error', MODEL, e.status, e.message);
+      // The code helps tell a set-up problem (401 key, 404 model name) from a bad photo (400).
+      return reply(502, { error: `Couldn’t read this photo. Please try again. (Claude error ${e.status ?? '?'})` });
     }
     console.error(e);
     return reply(500, { error: 'Couldn’t read this photo. Please try again.' });

@@ -8,7 +8,8 @@ import { Gutter, HeroScreen, SectionTitle } from '@/components/dashboard';
 import { Avatar, Button, Card, Chip, Divider, Field, Notice, Text } from '@/components/ui';
 import { useMyEmail, useMyId } from '@/lib/auth';
 import { CURRENCIES } from '@/lib/currencies';
-import { PAYID_CURRENCY, useRemovePayId, useSetPayId, useTallyData, useUpdateProfile } from '@/lib/data';
+import { PAYID_CURRENCY, useRemovePayId, useSetPayId, useSetReceiptScanConsent, useTallyData, useUpdateProfile } from '@/lib/data';
+import { canScanReceipts } from '@/lib/receipts';
 import { supabase } from '@/lib/supabase';
 import { PRESS_DELAY, brand, space, useColors } from '@/theme';
 import { usePullToRefresh } from '@/lib/pull-to-refresh';
@@ -45,7 +46,7 @@ function SettingRow({ label, value, onPress, danger }: { label: string; value?: 
   );
 }
 
-type Editing = null | 'name' | 'currency' | 'password' | 'payid';
+type Editing = null | 'name' | 'currency' | 'password' | 'payid' | 'receipts';
 
 export default function ProfileScreen() {
   const c = useColors();
@@ -60,6 +61,7 @@ export default function ProfileScreen() {
   const me = data.me;
   const myPayId = data.payIds[myId];
   const [editing, setEditing] = useState<Editing>(null);
+  const setScanConsent = useSetReceiptScanConsent();
   const [payType, setPayType] = useState<PayIdType>('phone');
   const [payValue, setPayValue] = useState('');
   const [payName, setPayName] = useState('');
@@ -328,6 +330,38 @@ export default function ProfileScreen() {
           <Card style={{ paddingVertical: 0 }}>
             <SettingRow label="Notifications" value="Coming soon" />
             <Divider />
+            {/* Receipt scanning sends photos to Anthropic, so it's on only once you've agreed. */}
+            {canScanReceipts ? (
+              <>
+                <SettingRow
+                  label="Receipt scanning"
+                  value={me?.receiptScanConsent ? 'On' : me?.receiptScanConsent === false ? 'Off' : 'Not set up'}
+                  onPress={() => open('receipts')}
+                />
+                {editing === 'receipts' ? (
+                  <View style={{ gap: space.md, paddingBottom: space.lg }}>
+                    <Text variant="caption" muted>
+                      To read a receipt, Tally sends the photo to Anthropic, the company that makes the Claude AI, outside Australia.
+                      Only the photo is sent, not your name, email or group. Off means nothing is sent and Scan receipt is hidden.
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: space.sm }}>
+                      <Chip
+                        label="On"
+                        selected={me?.receiptScanConsent === true}
+                        onPress={() => setScanConsent.mutate(true, { onSuccess: () => setEditing(null) })}
+                      />
+                      <Chip
+                        label="Off"
+                        selected={me?.receiptScanConsent === false}
+                        onPress={() => setScanConsent.mutate(false, { onSuccess: () => setEditing(null) })}
+                      />
+                    </View>
+                    {setScanConsent.isError ? <Notice>{setScanConsent.error.message}</Notice> : null}
+                  </View>
+                ) : null}
+                <Divider />
+              </>
+            ) : null}
             <SettingRow label="Version" value={Constants.expoConfig?.version ?? '—'} />
           </Card>
           <Button kind="secondary" label="Sign out" onPress={signOut} />

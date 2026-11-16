@@ -29,6 +29,7 @@ import {
   useNameOf,
   useRecurring,
   useRecurringDue,
+  useSetReceiptScanConsent,
   useTallyData,
   useUpdateExpense,
   useUpdateRecurring,
@@ -405,10 +406,10 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setSeenNewGroup(params.newGroupId);
     pickGroup(params.newGroupId);
   }
-  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | null>(null);
+  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | 'consent' | null>(null);
   // Close the keyboard (and wait until it's gone) before a sheet slides up. Otherwise the keyboard
   // closing tugs the sheet back down mid-slide, which shows as a flicker.
-  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan') => {
+  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan' | 'consent') => {
     if (KeyboardController.isVisible()) await KeyboardController.dismiss();
     setSheet(name);
   };
@@ -451,7 +452,21 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       setScanning(false);
     }
   }
-  const canScan = canScanReceipts && !isEdit && !schedule && !recurring.on && !!group;
+  // Asked once: photos only go to Anthropic after Accept; after Decline the button is gone.
+  const setConsent = useSetReceiptScanConsent();
+  const consent = data.me?.receiptScanConsent ?? null;
+  const canScan = canScanReceipts && consent !== false && !isEdit && !schedule && !recurring.on && !!group;
+  function answerConsent(accepted: boolean) {
+    setConsent.mutate(accepted, {
+      onSuccess: () => {
+        if (accepted) setSheet('scan');
+        else {
+          setSheet(null);
+          setScanNote('Receipt scanning is off, so no photos will be sent. You can turn it on any time in Profile.');
+        }
+      },
+    });
+  }
 
   // Open the keypad once the form has slid up, not during the animation.
   const amountRef = useRef<TextInputInstance>(null);
@@ -773,7 +788,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
             accessibilityLabel={receiptPath ? 'Scan a different receipt' : 'Scan a receipt'}
             accessibilityState={{ busy: scanning }}
             disabled={scanning}
-            onPress={() => void openSheet('scan')}
+            onPress={() => void openSheet(consent === true ? 'scan' : 'consent')}
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -1111,6 +1126,28 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
           <Text muted>Get the whole receipt in the photo, flat and in good light. You can check everything before you save.</Text>
           <Button label="Take a photo" onPress={() => void scan('camera')} />
           <Button label="Choose from photos" kind="secondary" onPress={() => void scan('library')} />
+        </View>
+      </Sheet>
+
+      {/* Asked the first time: may receipt photos go to Anthropic? */}
+      <Sheet visible={sheet === 'consent'} onClose={() => setSheet(null)} title="Scan receipts with AI?">
+        <View style={{ gap: space.md }}>
+          <Text>
+            To read a receipt, Tally sends the photo to Anthropic, the company that makes the Claude AI. It reads the shop, total and
+            items and sends them back. Only the photo is sent, not your name, email or group.
+          </Text>
+          <Text muted>
+            Anthropic is outside Australia. Photograph just the receipt, as anything else in the photo is sent too. If you decline,
+            nothing is sent and receipt scanning stays off. You can change this in Profile.
+          </Text>
+          {setConsent.isError ? <Notice>{setConsent.error.message}</Notice> : null}
+          <Button label="Accept" onPress={() => answerConsent(true)} loading={setConsent.isPending && setConsent.variables === true} />
+          <Button
+            label="Decline"
+            kind="secondary"
+            onPress={() => answerConsent(false)}
+            disabled={setConsent.isPending}
+          />
         </View>
       </Sheet>
 

@@ -465,6 +465,8 @@ export type Database = {
           id: string;
           is_guest: boolean;
           name: string;
+          receipt_scan_consent: boolean | null;
+          receipt_scan_consent_at: string | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -480,6 +482,8 @@ export type Database = {
           id: string;
           is_guest?: boolean;
           name: string;
+          receipt_scan_consent?: boolean | null;
+          receipt_scan_consent_at?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -494,6 +498,8 @@ export type Database = {
           id?: string;
           is_guest?: boolean;
           name?: string;
+          receipt_scan_consent?: boolean | null;
+          receipt_scan_consent_at?: string | null;
           updated_at?: string;
         };
         Relationships: [

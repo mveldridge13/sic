@@ -103,6 +103,8 @@ export interface Profile {
   currency: string;
   /** True once the user picked a currency themselves; until then it follows the device region. */
   currencyChosen: boolean;
+  /** Receipt scanning: null until asked, then whether they agreed to photos going to Anthropic. */
+  receiptScanConsent: boolean | null;
   createdAt: string;
 }
 
@@ -164,7 +166,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
       // the newer statuses.)
       .neq('settlements.status', 'voided')
       .order('created_at', { ascending: false }),
-    supabase.from('profiles').select('id, name, currency, currency_chosen, created_at').eq('id', myId).maybeSingle(),
+    supabase.from('profiles').select('id, name, currency, currency_chosen, receipt_scan_consent, created_at').eq('id', myId).maybeSingle(),
     // RLS returns only your own PayID and those of the owners of groups you're in.
     supabase.from('payment_methods').select('user_id, payid_type, value, account_name').eq('kind', 'payid'),
     supabase.rpc('my_group_summaries'),
@@ -189,7 +191,14 @@ async function fetchTally(myId: string): Promise<TallyData> {
   }
   if (meRes.data) {
     const p = meRes.data;
-    data.me = { id: p.id, name: p.name, currency: p.currency, currencyChosen: p.currency_chosen, createdAt: p.created_at };
+    data.me = {
+      id: p.id,
+      name: p.name,
+      currency: p.currency,
+      currencyChosen: p.currency_chosen,
+      receiptScanConsent: p.receipt_scan_consent,
+      createdAt: p.created_at,
+    };
     data.people[p.id] = { id: p.id, name: p.name };
   }
 
@@ -450,8 +459,11 @@ export function useUpdateExpense() {
 /** Soft delete: the expense is hidden and its last state is kept in expense_revisions. */
 export function useDeleteExpense() {
   return useInvalidating(async (expenseId: string) => {
+    const { data: row } = await supabase.from('expenses').select('receipt_path').eq('id', expenseId).maybeSingle();
     const { error } = await supabase.rpc('delete_expense', { p_expense_id: expenseId });
     if (error) throw error;
+    // Its receipt photo goes too. If this fails (e.g. offline) the expense is still deleted.
+    if (row?.receipt_path) await supabase.storage.from('receipts').remove([row.receipt_path]);
   });
 }
 
@@ -549,6 +561,18 @@ export function useUpdateProfile() {
     // Picking a currency by hand stops it following the device region.
     const patch = input.currency ? { ...input, currency_chosen: true } : input;
     const { error } = await supabase.from('profiles').update(patch).eq('id', myId);
+    if (error) throw error;
+  });
+}
+
+/** Record the answer to "Send receipt photos to Anthropic?" (Accept or Decline). */
+export function useSetReceiptScanConsent() {
+  const myId = useMyId();
+  return useInvalidating(async (accepted: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ receipt_scan_consent: accepted, receipt_scan_consent_at: new Date().toISOString() })
+      .eq('id', myId);
     if (error) throw error;
   });
 }

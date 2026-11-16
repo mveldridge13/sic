@@ -96,6 +96,24 @@ describe('Receipts', () => {
     expect((await cara.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: carasPhoto })).error).not.toBeNull();
   });
 
+  it('lets whoever deletes an expense delete its photo, and nobody else', async () => {
+    const path = `${groupId}/${uuid()}.jpg`;
+    await upload(bob, path);
+    const expenseId = await addExpense(bob);
+    await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
+
+    // While the expense exists, the owner can't remove Bob's photo.
+    await alice.client.storage.from('receipts').remove([path]);
+    expect(await canRead(bob, path)).toBe(true);
+
+    // Once the owner deletes the expense, she can, and Cara (who can't see it) still can't.
+    expect((await alice.client.rpc('delete_expense', { p_expense_id: expenseId })).error).toBeNull();
+    await cara.client.storage.from('receipts').remove([path]);
+    expect(await canRead(bob, path)).toBe(true);
+    await alice.client.storage.from('receipts').remove([path]);
+    expect(await canRead(bob, path)).toBe(false);
+  });
+
   it('lets you delete only your own photos', async () => {
     const path = `${groupId}/${uuid()}.jpg`;
     await upload(bob, path);
@@ -105,7 +123,19 @@ describe('Receipts', () => {
     expect(await canRead(bob, path)).toBe(false);
   });
 
+  const consent = (who: typeof alice, accepted: boolean) =>
+    who.client.from('profiles').update({ receipt_scan_consent: accepted, receipt_scan_consent_at: new Date().toISOString() }).eq('id', who.id);
+
+  it('refuses to scan until you accept, and after you decline', async () => {
+    expect((await bob.client.rpc('claim_receipt_scan')).error?.code).toBe('PT403');
+    await consent(bob, false);
+    expect((await bob.client.rpc('claim_receipt_scan')).error?.code).toBe('PT403');
+    await consent(bob, true);
+    expect((await bob.client.rpc('claim_receipt_scan')).error).toBeNull();
+  });
+
   it('allows 20 scans a day per person', async () => {
+    await Promise.all([consent(outsider, true), consent(cara, true)]);
     for (let i = 0; i < 20; i++) expect((await outsider.client.rpc('claim_receipt_scan')).error).toBeNull();
     const over = await outsider.client.rpc('claim_receipt_scan');
     expect(over.error?.code).toBe('PT429');
