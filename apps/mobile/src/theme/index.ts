@@ -1,7 +1,7 @@
 import { useColorScheme } from 'react-native';
 
 /**
- * Tally design tokens: Coral + Lavender.
+ * sic design tokens: Coral + Lavender.
  * Every colour, space and type size in the app comes from here.
  * Palette: coral pink #E4928A, warm coral #DFA3A8, lavender #E6DDF2, cream #FAF0EB, deep purple #605574.
  * Money isn't colour-coded red/green: the words ("Sam owes you", "You owe Leo") carry the meaning.
@@ -27,7 +27,7 @@ export const brand = {
   onCoral: '#2F2838',
   /** Cream: the page background in light mode. */
   cream: '#FAF0EB',
-  /** Red slash in the Tally mark: part of the logo in every palette. Logo only; never used for money states. */
+  /** Red full stop in the sic. logo: part of the logo in every palette. Logo only; never used for money states. */
   slash: '#EF4444',
   onDeep: '#FFFFFF',
   onAccent: '#2F2838',

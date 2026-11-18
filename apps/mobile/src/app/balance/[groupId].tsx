@@ -350,7 +350,7 @@ export default function BalanceBreakdownScreen() {
             <>
               <Button label={`Invite ${they} to join`} onPress={inviteGuest} />
               <Text variant="caption" muted>
-                {they} was added by name and doesn’t have a Tally account yet. When they accept this invite, everything recorded for them
+                {they} was added by name and doesn’t have a sic account yet. When they accept this invite, everything recorded for them
                 here becomes theirs.
               </Text>
             </>

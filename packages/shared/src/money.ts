@@ -1,5 +1,5 @@
 /**
- * All money in Tally is an integer number of minor units ("cents").
+ * All money in sic is an integer number of minor units ("cents").
  * $125.50 is 12550. Never use floats for money.
  */
 export type Cents = number;

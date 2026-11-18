@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { HeroGlow, useLightStatusBar, Wordmark } from '@/components/brand';
+import { HeroGlow, Logo, useLightStatusBar } from '@/components/brand';
 import { Button, LinkButton, Text } from '@/components/ui';
 import { savePendingInvite, usePendingInvite } from '@/lib/pending-invite';
 import { brand, radius, space } from '@/theme';
@@ -11,7 +11,7 @@ import { inviteCodeFrom } from '@/lib/invite';
 
 const onDeepMuted = brand.onDeepMuted;
 
-/** Static preview of what Tally shows, so the first screen explains the product. */
+/** Static preview of what sic shows, so the first screen explains the product. */
 function PreviewCard() {
   const rows = [
     { name: 'Sam', note: 'owes you', amount: '$42.50', color: brand.accent },
@@ -91,7 +91,7 @@ export default function WelcomeScreen() {
   useLightStatusBar();
   const [codeOpen, setCodeOpen] = useState(false);
   const [code, setCode] = useState('');
-  // Save the code, then sign up; after sign-up Tally joins the group automatically.
+  // Save the code, then sign up; after sign-up sic joins the group automatically.
   const applyCode = () => {
     if (!code.trim()) return;
     savePendingInvite(inviteCodeFrom(code));
@@ -110,7 +110,7 @@ export default function WelcomeScreen() {
           justifyContent: 'space-between',
           gap: space.xl,
         }}>
-        <Wordmark />
+        <Logo width={120} tone="light" />
 
         <View style={{ gap: space.xl }}>
           <View style={{ gap: space.md }}>

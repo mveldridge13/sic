@@ -241,7 +241,7 @@ export function recurringSummary(
   const from = f.start === todayDate() ? 'starting today' : `from ${shortDate(f.start)}`;
   const heads = f.headsUpDays === 0 ? 'on the day' : headsUpLabel(f.headsUpDays);
   return f.variable
-    ? `${name} comes up ${FREQUENCY_EVERY[f.frequency]} ${from}, ${end}. Each time, Tally asks ${what.payer} for the amount and splits it the same way. Everyone hears ${heads}.`
+    ? `${name} comes up ${FREQUENCY_EVERY[f.frequency]} ${from}, ${end}. Each time, sic asks ${what.payer} for the amount and splits it the same way. Everyone hears ${heads}.`
     : `${name}${what.amount ? ` ${formatMoney(what.amount, what.currency)}` : ''} is added ${FREQUENCY_EVERY[f.frequency]} ${from}, ${end}, paid by ${what.payer} and ${what.splitLine}. Everyone in it hears ${heads}.`;
 }
 
@@ -463,7 +463,7 @@ export function RecurringPanel({
             <View style={{ flex: 1, gap: 2 }}>
               <Text variant="heading">Amount changes each time</Text>
               <Text variant="caption" muted>
-                Tally asks for it on the day, e.g. power bills
+                sic asks for it on the day, e.g. power bills
               </Text>
             </View>
             <Switch

@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Join on Tally</title>
-<meta property="og:title" content="You're invited to a group on Tally">
+<title>Join on sic</title>
+<meta property="og:title" content="You're invited to a group on sic">
 <meta property="og:description" content="Split simply. Settle easily. Tap to join the group.">
 <style>
   :root {
@@ -19,7 +19,7 @@
   body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { background: var(--sage); color: #fff; padding: 48px 16px 40px; text-align: center; }
-  header svg { width: 64px; height: 64px; }
+  header .logo { width: 128px; height: auto; display: block; margin: 0 auto; }
   header h1 { margin: 12px 0 4px; font-size: 28px; letter-spacing: -0.3px; }
   header p { margin: 0; opacity: .82; }
   main { max-width: 440px; margin: -20px auto 0; padding: 0 16px 40px; }
@@ -38,22 +38,19 @@
 </head>
 <body>
 <header>
-  <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke-linecap="round">
-    <g stroke="#FAF0EB" stroke-width="4.5"><path d="M18 16v32"/><path d="M27 15v33"/><path d="M36 16v32"/><path d="M45 15v33"/></g>
-    <path d="M12 42 L52 22" stroke="#EF4444" stroke-width="5"/>
-  </svg>
+  <img class="logo" src="logo.png" alt="sic.">
   <h1>You're invited</h1>
-  <p>Join the group on Tally to split expenses.</p>
+  <p>Join the group on sic to split expenses.</p>
 </header>
 <main>
   <div class="card" id="card">
-    <a class="btn" id="open" href="#">Open in Tally</a>
+    <a class="btn" id="open" href="#">Open in sic</a>
     <button class="btn secondary" id="copy" type="button">Copy invite code</button>
     <div class="label">Invite code</div>
     <code id="code"></code>
-    <p class="help">Didn't open? In Tally, go to <strong>Groups → Join group</strong> and paste the code.
-      New to Tally? Paste it on the welcome screen when you sign up.
-      Don't have Tally yet? Ask the person who invited you for the app, then come back and tap <strong>Open in Tally</strong>.
+    <p class="help">Didn't open? In sic, go to <strong>Groups → Join group</strong> and paste the code.
+      New to sic? Paste it on the welcome screen when you sign up.
+      Don't have sic yet? Ask the person who invited you for the app, then come back and tap <strong>Open in sic</strong>.
       Your invite is kept through sign-up.</p>
   </div>
 </main>
@@ -68,11 +65,11 @@
     }
     var path = 'invite/' + encodeURIComponent(code);
     var isAndroid = /Android/i.test(navigator.userAgent);
-    // If Tally isn't installed, Android comes back to this page (marked so it doesn't loop) instead of the Play Store.
+    // If sic isn't installed, Android comes back to this page (marked so it doesn't loop) instead of the Play Store.
     var here = location.origin + location.pathname + '?code=' + encodeURIComponent(code) + '&tried=1';
     var appUrl = isAndroid
-      ? 'intent://' + path + '#Intent;scheme=tally;package=app.tally.mobile;S.browser_fallback_url=' + encodeURIComponent(here) + ';end'
-      : 'tally://' + path;
+      ? 'intent://' + path + '#Intent;scheme=sic;package=app.sic.mobile;S.browser_fallback_url=' + encodeURIComponent(here) + ';end'
+      : 'sic://' + path;
     document.getElementById('code').textContent = code;
     var open = document.getElementById('open');
     open.href = appUrl;

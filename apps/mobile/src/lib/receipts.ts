@@ -51,15 +51,15 @@ function cents(text: string): number | null {
 
 /** Ask for the camera or photos, then let the person take or pick one. Null if they cancel. */
 export async function pickReceiptPhoto(from: 'camera' | 'library'): Promise<ImagePicker.ImagePickerAsset | null> {
-  if (!canScanReceipts) throw new Error('Update Tally to scan receipts.');
+  if (!canScanReceipts) throw new Error('Update sic to scan receipts.');
   const ImagePicker = picker();
   const permission =
     from === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
     throw new Error(
       from === 'camera'
-        ? 'Tally needs the camera to scan a receipt. You can turn it on in your phone’s Settings.'
-        : 'Tally needs your photos to pick a receipt. You can turn it on in your phone’s Settings.',
+        ? 'sic needs the camera to scan a receipt. You can turn it on in your phone’s Settings.'
+        : 'sic needs your photos to pick a receipt. You can turn it on in your phone’s Settings.',
     );
   }
   const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1 };

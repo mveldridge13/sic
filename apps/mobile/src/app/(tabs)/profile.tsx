@@ -155,7 +155,7 @@ export default function ProfileScreen() {
   }
 
   function signOut() {
-    Alert.alert('Sign out of Tally?', 'You can log back in any time with your email and password.', [
+    Alert.alert('Sign out of sic?', 'You can log back in any time with your email and password.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign out',
@@ -274,7 +274,7 @@ export default function ProfileScreen() {
               {editing === 'payid' ? (
                 <View style={{ gap: space.md, paddingBottom: space.lg }}>
                   <Text variant="caption" muted>
-                    Only shared in AUD groups you own: members see it so they can copy it into their banking app to pay you back. Tally
+                    Only shared in AUD groups you own: members see it so they can copy it into their banking app to pay you back. sic
                     never moves money.
                   </Text>
                   <View style={{ flexDirection: 'row', gap: space.sm }}>
@@ -404,7 +404,7 @@ export default function ProfileScreen() {
                 {editing === 'receipts' ? (
                   <View style={{ gap: space.md, paddingBottom: space.lg }}>
                     <Text variant="caption" muted>
-                      To read a receipt, Tally sends the photo to Anthropic, the company that makes the Claude AI, outside Australia.
+                      To read a receipt, sic sends the photo to Anthropic, the company that makes the Claude AI, outside Australia.
                       Only the photo is sent, not your name, email or group. Off means nothing is sent and Scan receipt is hidden.
                     </Text>
                     <View style={{ flexDirection: 'row', gap: space.sm }}>
@@ -429,7 +429,7 @@ export default function ProfileScreen() {
           </Card>
           <Button kind="secondary" label="Sign out" onPress={signOut} />
           <Text variant="caption" muted style={{ textAlign: 'center', color: c.textMuted }}>
-            Tally · Split simply. Settle easily.
+            sic. · sharing is caring
           </Text>
         </Gutter>
       </View>

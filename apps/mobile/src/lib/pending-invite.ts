@@ -2,11 +2,11 @@ import { create } from 'zustand';
 
 /**
  * An invite opened (or a code entered) before signing in. It's kept on the phone so that
- * once the person creates an account or logs in, Tally joins them to the group automatically.
+ * once the person creates an account or logs in, sic joins them to the group automatically.
  * Used once, then cleared.
  */
 
-const KEY = 'tally.pendingInvite';
+const KEY = 'sic.pendingInvite';
 
 // localStorage is provided by expo-sqlite (installed in lib/supabase); guard in case it's unavailable.
 function read(): string | null {

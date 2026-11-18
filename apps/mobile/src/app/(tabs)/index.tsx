@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { TallyMark } from '@/components/brand';
+import { Logo } from '@/components/brand';
 import { NotificationBell } from '@/components/notification-bell';
 import { FlippingSummaryCard } from '@/components/summary-flip';
 import { CardText, Gutter, HeroScreen, StatRow, TotalPill, usePosition } from '@/components/dashboard';
@@ -148,7 +148,7 @@ export default function HomeScreen() {
       <HeroScreen
         nav="tab"
         title={`${greeting()}, ${firstName(me) || 'there'} 👋`}
-        subtitle={hasGroups ? 'Here’s where you stand with your groups.' : 'Welcome to Tally.'}
+        subtitle={hasGroups ? 'Here’s where you stand with your groups.' : 'Welcome to sic.'}
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
             <NotificationBell />
@@ -220,7 +220,7 @@ export default function HomeScreen() {
         ) : (
           <Gutter>
             <Card style={{ gap: space.sm }}>
-              <TallyMark size={48} color={c.primary} />
+              <Logo width={80} />
               <Text variant="title">Let’s get you set up</Text>
               <Text variant="body" muted>
                 Make a group for your flat, a trip or a night out.

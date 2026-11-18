@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "Tally",
-    "slug": "tally",
+    "name": "sic",
+    "slug": "sic",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tally",
+    "scheme": "sic",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "app.tally.mobile"
+      "bundleIdentifier": "app.sic.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "app.tally.mobile",
+      "package": "app.sic.mobile",
       "blockedPermissions": [
         "android.permission.WRITE_CONTACTS"
       ]
@@ -43,14 +43,14 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "Tally uses your contacts so you can add people to a group by picking them. Only the name you pick is saved."
+          "contactsPermission": "sic uses your contacts so you can add people to a group by picking them. Only the name you pick is saved."
         }
       ],
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Tally uses the camera so you can take a photo of a receipt and fill in the expense from it.",
-          "photosPermission": "Tally uses your photos so you can pick a picture of a receipt and fill in the expense from it.",
+          "cameraPermission": "sic uses the camera so you can take a photo of a receipt and fill in the expense from it.",
+          "photosPermission": "sic uses your photos so you can pick a picture of a receipt and fill in the expense from it.",
           "microphonePermission": false
         }
       ]

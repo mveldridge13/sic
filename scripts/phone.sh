@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run the Tally dev build on a phone connected via wireless debugging.
+# Run the sic dev build on a phone connected via wireless debugging.
 # Finds adb itself, so it works even if the Android SDK isn't on your PATH.
 set -e
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"

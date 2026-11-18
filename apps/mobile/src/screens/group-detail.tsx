@@ -435,7 +435,7 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
             <View style={{ gap: 2 }}>
               <Text variant="heading">Add by name</Text>
               <Text variant="caption" muted>
-                For someone without Tally yet. Invite them later and they keep their history.
+                For someone without sic yet. Invite them later and they keep their history.
               </Text>
             </View>
             <ContactNameField value={guestName} onChange={setGuestName} onContact={setGuestReach} onSubmit={addGuestNow} />

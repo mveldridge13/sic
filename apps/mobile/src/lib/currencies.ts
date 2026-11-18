@@ -2,7 +2,7 @@ import { requireOptionalNativeModule } from 'expo';
 import type * as Localization from 'expo-localization';
 
 /**
- * Currencies Tally offers for groups. All amounts are stored as integer cents, which
+ * Currencies sic offers for groups. All amounts are stored as integer cents, which
  * assumes 2 decimal places, so zero-decimal currencies (JPY, KRW, …) are deliberately
  * excluded until the money layer supports per-currency precision.
  */
@@ -16,7 +16,7 @@ export function isSupportedCurrency(code: string | null | undefined): code is Cu
 
 /**
  * The currency of the phone's region (Settings → language & region), e.g. AUD in Australia.
- * Returns null when the region's currency isn't one Tally supports yet.
+ * Returns null when the region's currency isn't one sic supports yet.
  */
 export function deviceCurrency(): Currency | null {
   // Only load expo-localization if this build includes its native module. An older

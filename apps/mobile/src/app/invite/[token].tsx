@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { TallyMark } from '@/components/brand';
+import { Logo } from '@/components/brand';
 import { Gutter, HeroScreen, onDeepMuted } from '@/components/dashboard';
 import { Button, Notice, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -11,7 +11,7 @@ import { savePendingInvite } from '@/lib/pending-invite';
 import { brand, space } from '@/theme';
 
 /**
- * Opened from tally://invite/<token> (via the invite web page) or automatically
+ * Opened from sic://invite/<token> (via the invite web page) or automatically
  * after sign-in when an invite was saved while signed out.
  */
 export default function AcceptInviteScreen() {
@@ -39,7 +39,7 @@ export default function AcceptInviteScreen() {
   const card = (
     <>
       <View style={{ alignItems: 'center', gap: space.lg }}>
-        <TallyMark size={64} />
+        <Logo width={120} tone="light" />
         {failed ? null : <ActivityIndicator color={brand.accent} />}
         <Text variant="body" color={onDeepMuted} style={{ textAlign: 'center' }}>
           {failed ? 'This invite didn’t work.' : 'Adding you to the group…'}

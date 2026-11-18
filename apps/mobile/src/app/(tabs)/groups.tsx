@@ -4,7 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { TallyMark } from '@/components/brand';
+import { Logo } from '@/components/brand';
 import { GroupListCard, PositionFigure, Gutter, HeroScreen, CardText, QuickAction, StatRow, TotalPill } from '@/components/dashboard';
 import { Sheet } from '@/components/friendly';
 import { Bouncy, buzz } from '@/components/fun';
@@ -165,7 +165,7 @@ export default function GroupsScreen() {
       </>
     ) : (
       <View style={{ gap: space.sm }}>
-        <TallyMark size={48} color={brand.deep} />
+        <Logo width={80} />
         <CardText muted>A group is the people you share costs with: a trip, your flat, a dinner club.</CardText>
       </View>
     );
@@ -227,7 +227,7 @@ export default function GroupsScreen() {
         {body}
       </HeroScreen>
 
-      {/* Join with a code or link someone shared, for when tapping the link didn't open Tally. */}
+      {/* Join with a code or link someone shared, for when tapping the link didn't open sic. */}
       <Sheet
         visible={joining}
         onClose={closeJoin}

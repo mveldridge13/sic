@@ -5,14 +5,14 @@ import { createInvite } from './data';
 /** The text of an invite to a group, optionally as a named guest whose history comes with them. */
 export function inviteMessage(groupName: string, token: string, guestName?: string) {
   const intro = guestName
-    ? `Join "${groupName}" on Tally as ${guestName}. Everything already recorded for you comes with you.`
-    : `Join "${groupName}" on Tally so we can split expenses.`;
+    ? `Join "${groupName}" on sic as ${guestName}. Everything already recorded for you comes with you.`
+    : `Join "${groupName}" on sic so we can split expenses.`;
   return `${intro}\n\nTap to join: ${inviteLink(token)}`;
 }
 
 /**
  * Web address for an invite. Messaging and email apps only make https links tappable, so the
- * invite points at a small page (GitHub Pages, docs/invite) that opens tally://invite/<token>
+ * invite points at a small page (GitHub Pages, docs/invite) that opens sic://invite/<token>
  * and shows the code as a fallback.
  */
 export const INVITE_PAGE = 'https://mveldridge13.github.io/tally/invite/';
@@ -20,7 +20,7 @@ export function inviteLink(token: string) {
   return `${INVITE_PAGE}?code=${encodeURIComponent(token)}`;
 }
 
-/** The invite code from whatever was pasted: the code itself, the web link, or a tally:// link. */
+/** The invite code from whatever was pasted: the code itself, the web link, or a sic:// link. */
 export function inviteCodeFrom(text: string): string {
   const clean = text.trim();
   const match = clean.match(/[?&]code=([^&#\s]+)/) ?? clean.match(/invite\/([^/?#\s]+)/);
@@ -52,7 +52,7 @@ export async function sendInvite(options: {
     const number = options.phone.replace(/[^\d+]/g, '');
     url = `sms:${number}${Platform.OS === 'ios' ? '&' : '?'}body=${encodeURIComponent(message)}`;
   } else if (options.channel === 'email' && options.email) {
-    const subject = `Join ${options.groupName} on Tally`;
+    const subject = `Join ${options.groupName} on sic`;
     url = `mailto:${encodeURIComponent(options.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
   }
 

@@ -1133,7 +1133,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       <Sheet visible={sheet === 'consent'} onClose={() => setSheet(null)} title="Scan receipts with AI?">
         <View style={{ gap: space.md }}>
           <Text>
-            To read a receipt, Tally sends the photo to Anthropic, the company that makes the Claude AI. It reads the shop, total and
+            To read a receipt, sic sends the photo to Anthropic, the company that makes the Claude AI. It reads the shop, total and
             items and sends them back. Only the photo is sent, not your name, email or group.
           </Text>
           <Text muted>

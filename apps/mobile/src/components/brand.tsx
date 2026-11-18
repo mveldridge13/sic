@@ -1,65 +1,34 @@
 import { useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Image, useColorScheme, View } from 'react-native';
 import { KeyboardAwareScrollView, useKeyboardState } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import { brand, radius, space, useColors } from '@/theme';
 import { usePendingInvite } from '@/lib/pending-invite';
 import { Notice, Text } from './ui';
 
+const LOGO_DARK = require('../../assets/images/logo-dark.png');
+const LOGO_LIGHT = require('../../assets/images/logo-light.png');
+/** Width ÷ height of the logo images (made by scripts/generate-icons.mjs from the sic. artwork). */
+const LOGO_RATIO = 769 / 360;
+
 /**
- * The Tally mark: four hand-drawn strokes crossed by a red fifth.
- * Paths are shared with scripts/generate-icons.mjs, which renders the app icon and splash.
+ * The sic. logo (without the tagline). Purple with the red full stop on light screens; cream on purple
+ * screens and in dark mode. Pass tone="light" when it sits on purple.
  */
-const MARK_STROKES = [
-  { d: 'M29 21.5 C 27.6 40, 30.2 58, 28.6 79', w: 7.4 },
-  { d: 'M43 19.5 C 44.6 38, 41.8 60, 43.4 80.5', w: 6.8 },
-  { d: 'M57.2 22 C 55.6 40, 58.2 59, 56.6 79', w: 7.2 },
-  { d: 'M71 20.5 C 72.2 39, 69.8 58, 71.4 80', w: 6.6 },
-];
-const MARK_SLASH = {
-  d: 'M15 70.5 C 33 61.5, 51 50.5, 65 41.5 S 80.5 31.5, 87 29',
-  w: 7.8,
-};
-
-export function TallyMark({
-  size = 48,
-  color = brand.accent,
-  slashColor = brand.slash,
-}: {
-  size?: number;
-  color?: string;
-  slashColor?: string;
-}) {
+export function Logo({ width = 96, tone }: { width?: number; tone?: 'dark' | 'light' }) {
+  const scheme = useColorScheme();
+  const light = (tone ?? (scheme === 'dark' ? 'light' : 'dark')) === 'light';
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel="Tally">
-      {MARK_STROKES.map((s) => (
-        <Path key={s.d} d={s.d} stroke={color} strokeWidth={s.w} strokeLinecap="round" fill="none" />
-      ))}
-      <Path d={MARK_SLASH.d} stroke={slashColor} strokeWidth={MARK_SLASH.w} strokeLinecap="round" fill="none" />
-    </Svg>
-  );
-}
-
-/** Logo lock-up: mark + wordmark, written in lower case with a full stop ("tally."). */
-export function Wordmark({ size = 28, color = brand.onDeep, markColor }: { size?: number; color?: string; markColor?: string }) {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-      <TallyMark size={size * 1.25} color={markColor} />
-      <Text
-        style={{
-          fontSize: size,
-          fontWeight: '800',
-          letterSpacing: -0.5,
-          color,
-        }}
-        accessibilityLabel="Tally">
-        tally.
-      </Text>
-    </View>
+    <Image
+      source={light ? LOGO_LIGHT : LOGO_DARK}
+      style={{ width, height: width / LOGO_RATIO }}
+      resizeMode="contain"
+      accessibilityRole="image"
+      accessibilityLabel="sic."
+    />
   );
 }
 
@@ -135,7 +104,7 @@ export function AuthShell({
           paddingBottom: typing ? space.xl + space.sm : space.xxl + space.lg,
           gap: space.lg,
         }}>
-        {typing ? null : <TallyMark size={56} />}
+        {typing ? null : <Logo width={104} tone="light" />}
         <View style={{ gap: space.xs }}>
           <Text variant={typing ? 'title' : 'display'} color={brand.onDeep}>
             {title}

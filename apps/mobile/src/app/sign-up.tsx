@@ -80,7 +80,7 @@ export default function SignUpScreen() {
       footer={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
           <Text variant="body" muted>
-            Already on Tally?
+            Already on sic?
           </Text>
           <LinkButton label="Log in" onPress={() => router.replace('/sign-in')} />
         </View>

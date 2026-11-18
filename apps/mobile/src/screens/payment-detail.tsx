@@ -210,7 +210,7 @@ export function PaymentDetail({ id, embedded = false, onGone }: { id: string; em
             </View>
           </Card>
           <Text variant="caption" muted>
-            Tally records payments made in cash or another app; it doesn’t move money itself. Correct it if the amount or note is wrong;
+            sic records payments made in cash or another app; it doesn’t move money itself. Correct it if the amount or note is wrong;
             undo it only if it was recorded by mistake.
           </Text>
         </Gutter>

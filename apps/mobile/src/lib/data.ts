@@ -16,7 +16,7 @@ import { supabase } from './supabase';
 export interface Person {
   id: string;
   name: string;
-  /** Added by name, without a Tally account yet. */
+  /** Added by name, without a sic account yet. */
   isGuest?: boolean;
 }
 
@@ -679,7 +679,7 @@ export function useReplacedPayment(replacesId: string | null | undefined) {
   });
 }
 
-/** Add someone to a group by name, before they have a Tally account. Returns the guest's id. */
+/** Add someone to a group by name, before they have a sic account. Returns the guest's id. */
 export function useAddGuest() {
   return useInvalidating(async (input: { groupId: string; name: string }) => {
     const { data, error } = await supabase.rpc('add_guest', { p_group_id: input.groupId, p_name: input.name.trim() });
@@ -873,7 +873,7 @@ export interface RecurringExpense {
   payerId: string;
   /** The split as it was entered, so the form opens filled in. */
   split: SplitInput;
-  /** Amount changes each time: Tally asks for it on the day. */
+  /** Amount changes each time: sic asks for it on the day. */
   variable: boolean;
   /** Fixed amount only. */
   amount: Cents | null;

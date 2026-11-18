@@ -16,7 +16,7 @@ import { netByCurrency, type GroupSummary } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
 import { PRESS_DELAY, balanceColor, brand, radius, space, useColors } from '@/theme';
 import { CONTENT_MAX_WIDTH, useWidthClass } from '@/lib/layout';
-import { HeroGlow, Wordmark } from './brand';
+import { HeroGlow, Logo } from './brand';
 import { GroupIcon } from './friendly';
 import { Text } from './ui';
 
@@ -112,7 +112,7 @@ export function HeroScreen({
           {topRow ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
               {showLogo ? (
-                <Wordmark size={24} color={c.primary} markColor={c.primary} />
+                <Logo width={72} />
               ) : nav === 'back' ? (
                 <HeroIconButton icon="back" />
               ) : (

@@ -1,8 +1,8 @@
-# Tally
+# sic
 
 **Split simply. Settle easily.**
 
-Tally is a shared-money app: shared expenses, group balances and settlements. It is deliberately
+sic is a shared-money app: shared expenses, group balances and settlements. It is deliberately
 **not** a budgeting app, so there are no budgets or personal finance dashboards.
 
 Platform focus: **Android first**, including foldables (Galaxy Z Fold8). The Expo codebase is
@@ -37,7 +37,7 @@ every write goes through database functions that re-check the money rules.
   snapshotted; deletes are soft; corrected payments keep the original.
 - **Each group has one currency.** Totals in different currencies are never added together.
 - **Guests** can be added by name and claim their history when they join.
-- **PayID** (Australia only) is shown so people can copy it; Tally never moves money.
+- **PayID** (Australia only) is shown so people can copy it; sic never moves money.
 
 ## Getting started
 

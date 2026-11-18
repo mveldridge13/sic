@@ -1,7 +1,7 @@
 /**
  * PayID details: checking, normalising and formatting what people enter.
  *
- * Tally only stores and shows a PayID so others can copy it into their banking app.
+ * sic only stores and shows a PayID so others can copy it into their banking app.
  * It never verifies that the PayID is registered to that person; only a bank can.
  */
 

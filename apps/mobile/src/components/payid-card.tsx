@@ -15,7 +15,7 @@ function CopyButton({ label, text, copied, onCopied }: { label: string; text: st
       accessibilityLabel={`Copy ${label}`}
       onPress={async () => {
         if (await copyText(text)) onCopied();
-        else Alert.alert('Copy isn’t available', 'Update to the latest version of Tally to copy, or select the text and copy it.');
+        else Alert.alert('Copy isn’t available', 'Update to the latest version of sic to copy, or select the text and copy it.');
       }}
       style={({ pressed }) => ({
         paddingHorizontal: space.md,
@@ -34,7 +34,7 @@ function CopyButton({ label, text, copied, onCopied }: { label: string; text: st
 
 /**
  * Someone's PayID with copy buttons, so it can be pasted into a banking app.
- * Pass `amount` to also offer copying the amount owed. Tally doesn't verify PayIDs,
+ * Pass `amount` to also offer copying the amount owed. sic doesn't verify PayIDs,
  * so the card asks the payer to check the name their bank shows before paying.
  */
 export function PayIdCard({ name, payId, amount }: { name: string; payId: PayId; amount?: { cents: Cents; currency: string } }) {
@@ -100,7 +100,7 @@ export function PayIdCard({ name, payId, amount }: { name: string; payId: PayId;
       <Text variant="caption" muted>
         {payId.accountName
           ? `Their bank should show the name “${payId.accountName}”. Check it matches before you pay.`
-          : 'Check the name your bank shows matches before you pay. Tally doesn’t verify PayIDs.'}
+          : 'Check the name your bank shows matches before you pay. sic doesn’t verify PayIDs.'}
       </Text>
     </Card>
   );

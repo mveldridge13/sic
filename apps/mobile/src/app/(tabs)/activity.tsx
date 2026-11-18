@@ -3,7 +3,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { TallyMark } from '@/components/brand';
+import { Logo } from '@/components/brand';
 import { CardText, Gutter, HeroScreen, StatRow, TotalPill } from '@/components/dashboard';
 import { GroupIcon, Sheet } from '@/components/friendly';
 import { Bouncy, buzz, CountUp } from '@/components/fun';
@@ -203,7 +203,7 @@ export default function ActivityScreen() {
     </>
   ) : (
     <View style={{ gap: space.sm }}>
-      <TallyMark size={48} color={brand.deep} />
+      <Logo width={80} />
       <CardText muted>Expenses and payments from all your groups will appear here. Tap any item to see the details.</CardText>
     </View>
   );

@@ -96,7 +96,7 @@ export function ContactNameField({
         />
         {denied === 'settings' ? (
           <Notice tone="info">
-            Contacts access is turned off for Tally. Type the name, or turn it on in Settings to pick from your contacts.
+            Contacts access is turned off for sic. Type the name, or turn it on in Settings to pick from your contacts.
           </Notice>
         ) : denied === 'ask-again' ? (
           <Notice tone="info">No problem. Type the name instead, or tap “Pick from contacts” to try again.</Notice>

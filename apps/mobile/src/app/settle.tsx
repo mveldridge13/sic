@@ -35,7 +35,7 @@ function AmountChip({ label, selected, onPress }: { label: string; selected: boo
 
 /**
  * Pay someone back: "Pay Leo back $18.25", slide when it's done, confetti.
- * Records a repayment that happened outside the app; Tally never moves money and never edits the
+ * Records a repayment that happened outside the app; sic never moves money and never edits the
  * original expenses. With `paymentId` it corrects an existing payment instead (plain form, Save button).
  */
 export default function SettleScreen() {
@@ -340,8 +340,8 @@ export default function SettleScreen() {
         )}
         <Text variant="caption" muted style={{ textAlign: 'center' }}>
           {needsConfirm
-            ? `Tally never moves money. ${receiver} will be asked to confirm it arrived.`
-            : 'Tally never moves money. This just records it.'}
+            ? `sic never moves money. ${receiver} will be asked to confirm it arrived.`
+            : 'sic never moves money. This just records it.'}
         </Text>
       </Gutter>
     </HeroScreen>

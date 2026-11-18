@@ -469,7 +469,7 @@ export default function NewGroupScreen() {
         {adding ? (
           <View style={{ gap: space.sm }}>
             {contactsOff === 'settings' ? (
-              <Notice tone="info">Contacts access is turned off for Tally. Type the name, or turn it on in Settings to pick from your contacts.</Notice>
+              <Notice tone="info">Contacts access is turned off for sic. Type the name, or turn it on in Settings to pick from your contacts.</Notice>
             ) : null}
             <Pressable
               accessibilityRole="button"

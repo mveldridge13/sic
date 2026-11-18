@@ -5,7 +5,7 @@ import { useEffect, type ComponentProps } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { TallyMark } from '@/components/brand';
+import { Logo } from '@/components/brand';
 import { Text } from '@/components/ui';
 import { useSyncDeviceCurrency, useSyncTimeZone } from '@/lib/data';
 import { takePendingInvite } from '@/lib/pending-invite';
@@ -96,7 +96,7 @@ export default function TabsLayout() {
         borderColor: c.border,
       }}>
       <View style={{ alignItems: 'center', paddingBottom: space.lg }} pointerEvents="none">
-        <TallyMark size={36} color={c.primary} />
+        <Logo width={56} />
       </View>
       {triggers}
     </TabList>

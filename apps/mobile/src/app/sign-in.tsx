@@ -46,7 +46,7 @@ export default function SignInScreen() {
       footer={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
           <Text variant="body" muted>
-            New to Tally?
+            New to sic?
           </Text>
           <LinkButton label="Create an account" onPress={() => router.replace('/sign-up')} />
         </View>

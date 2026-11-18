@@ -28,7 +28,7 @@ async function signUp(name: string): Promise<{ client: SupabaseClient; id: strin
   return { client, id: data.user.id };
 }
 
-describe('Tally ledger (Supabase)', () => {
+describe('sic ledger (Supabase)', () => {
   let alice: Awaited<ReturnType<typeof signUp>>;
   let bob: Awaited<ReturnType<typeof signUp>>;
   let eve: Awaited<ReturnType<typeof signUp>>;
