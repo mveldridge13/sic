@@ -46,7 +46,7 @@ function SettingRow({ label, value, onPress, danger }: { label: string; value?: 
   );
 }
 
-type Editing = null | 'name' | 'currency' | 'password' | 'payid' | 'receipts';
+type Editing = null | 'name' | 'currency' | 'password' | 'payid' | 'receipts' | 'delete';
 
 export default function ProfileScreen() {
   const c = useColors();
@@ -73,11 +73,15 @@ export default function ProfileScreen() {
     error?: string;
     done?: boolean;
   }>({ busy: false });
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteState, setDeleteState] = useState<{ busy: boolean; error?: string }>({ busy: false });
 
   function open(section: Editing) {
     updateProfile.reset();
     setPasswordState({ busy: false });
     setPassword('');
+    setDeletePassword('');
+    setDeleteState({ busy: false });
     if (section === 'name') setNameDraft(me?.name ?? '');
     if (section === 'payid') {
       const current = data.payIds[myId];
@@ -120,6 +124,34 @@ export default function ProfileScreen() {
     const { error } = await supabase.auth.updateUser({ password });
     setPassword('');
     setPasswordState(error ? { busy: false, error: error.message } : { busy: false, done: true });
+  }
+
+  function confirmDeleteAccount() {
+    if (!deletePassword) return setDeleteState({ busy: false, error: 'Enter your password to confirm it’s you.' });
+    Alert.alert(
+      'Delete your account?',
+      'This can’t be undone. Your login, PayID and settings are deleted. Groups you own pass to someone else. Past expenses and payments stay in your groups, under your name.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete account', style: 'destructive', onPress: deleteAccount },
+      ],
+    );
+  }
+
+  async function deleteAccount() {
+    setDeleteState({ busy: true });
+    // Check the password first, so someone holding an unlocked phone can't delete the account.
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password: deletePassword });
+    if (authError) {
+      return setDeleteState({
+        busy: false,
+        error: authError.message === 'Invalid login credentials' ? 'That password isn’t right.' : authError.message,
+      });
+    }
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) return setDeleteState({ busy: false, error: error.message });
+    // The login no longer exists, so just forget it on this phone.
+    await supabase.auth.signOut({ scope: 'local' });
   }
 
   function signOut() {
@@ -318,6 +350,37 @@ export default function ProfileScreen() {
                 {passwordState.error ? <Notice>{passwordState.error}</Notice> : null}
                 {passwordState.done ? <Notice tone="info">Password updated.</Notice> : null}
                 <Button label="Update password" onPress={savePassword} loading={passwordState.busy} disabled={!password} />
+              </View>
+            ) : null}
+            <Divider />
+            <SettingRow label="Delete account" danger onPress={() => open('delete')} />
+            {editing === 'delete' ? (
+              <View style={{ gap: space.md, paddingBottom: space.lg }}>
+                <Text variant="caption" muted>
+                  You need to be settled up in every group first. Your login, PayID and settings are deleted for good. Groups you own pass to
+                  a co-owner or the longest-standing member. Past expenses and payments stay, so your groups’ balances still add up.
+                </Text>
+                <Field
+                  label="Your password"
+                  value={deletePassword}
+                  onChangeText={(v) => {
+                    setDeletePassword(v);
+                    setDeleteState({ busy: false });
+                  }}
+                  secureTextEntry
+                  autoComplete="current-password"
+                  textContentType="password"
+                  returnKeyType="done"
+                  onSubmitEditing={confirmDeleteAccount}
+                />
+                {deleteState.error ? <Notice>{deleteState.error}</Notice> : null}
+                <Button
+                  kind="danger"
+                  label="Delete my account"
+                  onPress={confirmDeleteAccount}
+                  loading={deleteState.busy}
+                  disabled={!deletePassword}
+                />
               </View>
             ) : null}
           </Card>

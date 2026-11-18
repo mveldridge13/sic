@@ -111,6 +111,7 @@ export type Database = {
           occurred_at: string;
           payer_id: string;
           receipt_path: string | null;
+          recurring_id: string | null;
           split_method: Database['public']['Enums']['split_method'];
           updated_at: string;
         };
@@ -128,6 +129,7 @@ export type Database = {
           occurred_at?: string;
           payer_id: string;
           receipt_path?: string | null;
+          recurring_id?: string | null;
           split_method: Database['public']['Enums']['split_method'];
           updated_at?: string;
         };
@@ -144,6 +146,7 @@ export type Database = {
           occurred_at?: string;
           payer_id?: string;
           receipt_path?: string | null;
+          recurring_id?: string | null;
           split_method?: Database['public']['Enums']['split_method'];
           updated_at?: string;
         };
@@ -167,6 +170,13 @@ export type Database = {
             columns: ['payer_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'expenses_recurring_id_fkey';
+            columns: ['recurring_id'];
+            isOneToOne: false;
+            referencedRelation: 'recurring_expenses';
             referencedColumns: ['id'];
           },
         ];
@@ -362,6 +372,7 @@ export type Database = {
           id: string;
           kind: string;
           read_at: string | null;
+          recurring_id: string | null;
           settlement_id: string | null;
           user_id: string;
         };
@@ -374,6 +385,8 @@ export type Database = {
           id?: string;
           kind: string;
           read_at?: string | null;
+          recurring_id?: string | null;
+          settlement_id?: string | null;
           user_id: string;
         };
         Update: {
@@ -384,6 +397,8 @@ export type Database = {
           id?: string;
           kind?: string;
           read_at?: string | null;
+          recurring_id?: string | null;
+          settlement_id?: string | null;
           user_id?: string;
         };
         Relationships: [
@@ -399,6 +414,20 @@ export type Database = {
             columns: ['group_id'];
             isOneToOne: false;
             referencedRelation: 'groups';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_recurring_id_fkey';
+            columns: ['recurring_id'];
+            isOneToOne: false;
+            referencedRelation: 'recurring_expenses';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_settlement_id_fkey';
+            columns: ['settlement_id'];
+            isOneToOne: false;
+            referencedRelation: 'settlements';
             referencedColumns: ['id'];
           },
           {
@@ -461,12 +490,14 @@ export type Database = {
           created_by: string | null;
           currency: string;
           currency_chosen: boolean;
+          deleted_at: string | null;
           guest_group_id: string | null;
           id: string;
           is_guest: boolean;
           name: string;
           receipt_scan_consent: boolean | null;
           receipt_scan_consent_at: string | null;
+          time_zone: string | null;
           updated_at: string;
         };
         ComputedFields: never;
@@ -478,12 +509,14 @@ export type Database = {
           created_by?: string | null;
           currency?: string;
           currency_chosen?: boolean;
+          deleted_at?: string | null;
           guest_group_id?: string | null;
           id: string;
           is_guest?: boolean;
           name: string;
           receipt_scan_consent?: boolean | null;
           receipt_scan_consent_at?: string | null;
+          time_zone?: string | null;
           updated_at?: string;
         };
         Update: {
@@ -494,12 +527,14 @@ export type Database = {
           created_by?: string | null;
           currency?: string;
           currency_chosen?: boolean;
+          deleted_at?: string | null;
           guest_group_id?: string | null;
           id?: string;
           is_guest?: boolean;
           name?: string;
           receipt_scan_consent?: boolean | null;
           receipt_scan_consent_at?: string | null;
+          time_zone?: string | null;
           updated_at?: string;
         };
         Relationships: [
@@ -526,11 +561,147 @@ export type Database = {
           },
         ];
       };
+      receipt_scans: {
+        Row: {
+          created_at: string;
+          id: number;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          id?: never;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: never;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'receipt_scans_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      recurring_expenses: {
+        Row: {
+          amount_cents: number | null;
+          created_at: string;
+          created_by: string;
+          description: string;
+          due_date: string | null;
+          due_reminded: boolean;
+          end_date: string | null;
+          frequency: string;
+          group_id: string;
+          heads_up_days: number;
+          heads_up_for: string | null;
+          id: string;
+          items: Json | null;
+          next_date: string;
+          occurrences: number;
+          paused: boolean;
+          payer_id: string;
+          remaining: number | null;
+          split_input: NonNullable<Json>;
+          split_method: Database['public']['Enums']['split_method'];
+          splits: Json | null;
+          start_date: string;
+          stopped_at: string | null;
+          updated_at: string;
+          variable: boolean;
+          recurring_audience: string | null;
+        };
+        ComputedFields: 'recurring_audience';
+        Insert: {
+          amount_cents?: number | null;
+          created_at?: string;
+          created_by: string;
+          description: string;
+          due_date?: string | null;
+          due_reminded?: boolean;
+          end_date?: string | null;
+          frequency: string;
+          group_id: string;
+          heads_up_days?: number;
+          heads_up_for?: string | null;
+          id?: string;
+          items?: Json | null;
+          next_date: string;
+          occurrences?: number;
+          paused?: boolean;
+          payer_id: string;
+          remaining?: number | null;
+          split_input: NonNullable<Json>;
+          split_method: Database['public']['Enums']['split_method'];
+          splits?: Json | null;
+          start_date: string;
+          stopped_at?: string | null;
+          updated_at?: string;
+          variable?: boolean;
+        };
+        Update: {
+          amount_cents?: number | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string;
+          due_date?: string | null;
+          due_reminded?: boolean;
+          end_date?: string | null;
+          frequency?: string;
+          group_id?: string;
+          heads_up_days?: number;
+          heads_up_for?: string | null;
+          id?: string;
+          items?: Json | null;
+          next_date?: string;
+          occurrences?: number;
+          paused?: boolean;
+          payer_id?: string;
+          remaining?: number | null;
+          split_input?: NonNullable<Json>;
+          split_method?: Database['public']['Enums']['split_method'];
+          splits?: Json | null;
+          start_date?: string;
+          stopped_at?: string | null;
+          updated_at?: string;
+          variable?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'recurring_expenses_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'recurring_expenses_group_id_fkey';
+            columns: ['group_id'];
+            isOneToOne: false;
+            referencedRelation: 'groups';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'recurring_expenses_payer_id_fkey';
+            columns: ['payer_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       settlements: {
         Row: {
           amount_cents: number;
           created_at: string;
           created_by: string;
+          expense_id: string | null;
           from_user_id: string;
           group_id: string;
           id: string;
@@ -546,12 +717,14 @@ export type Database = {
           amount_cents: number;
           created_at?: string;
           created_by: string;
+          expense_id?: string | null;
           from_user_id: string;
           group_id: string;
           id?: string;
           note?: string | null;
           occurred_at?: string;
           replaces_id?: string | null;
+          responded_at?: string | null;
           status?: Database['public']['Enums']['settlement_status'];
           to_user_id: string;
         };
@@ -559,12 +732,14 @@ export type Database = {
           amount_cents?: number;
           created_at?: string;
           created_by?: string;
+          expense_id?: string | null;
           from_user_id?: string;
           group_id?: string;
           id?: string;
           note?: string | null;
           occurred_at?: string;
           replaces_id?: string | null;
+          responded_at?: string | null;
           status?: Database['public']['Enums']['settlement_status'];
           to_user_id?: string;
         };
@@ -574,6 +749,13 @@ export type Database = {
             columns: ['created_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'settlements_expense_id_fkey';
+            columns: ['expense_id'];
+            isOneToOne: false;
+            referencedRelation: 'expenses';
             referencedColumns: ['id'];
           },
           {
@@ -614,8 +796,26 @@ export type Database = {
       accept_invite: { Args: { p_token: string }; Returns: string };
       add_guest: { Args: { p_group_id: string; p_name: string }; Returns: string };
       add_members: { Args: { p_group_id: string; p_user_ids: string[] }; Returns: undefined };
+      can_manage_recurring: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
+      can_read_expense: { Args: { p_created_by: string; p_expense_id: string; p_group_id: string }; Returns: boolean };
       can_see_expense: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
       can_see_settlement: { Args: { p_created_by: string; p_from: string; p_group_id: string; p_to: string }; Returns: boolean };
+      check_recurring_input: {
+        Args: {
+          p_amount_cents: number;
+          p_frequency: string;
+          p_group_id: string;
+          p_heads_up_days: number;
+          p_items: Json;
+          p_payer_id: string;
+          p_split_method: Database['public']['Enums']['split_method'];
+          p_splits: Json;
+          p_variable: boolean;
+        };
+        Returns: undefined;
+      };
+      claim_receipt_scan: { Args: Record<PropertyKey, never>; Returns: undefined };
+      complete_recurring_due: { Args: { p_expense_id: string; p_id: string }; Returns: undefined };
       correct_settlement: {
         Args: { p_amount_cents: number; p_note?: string; p_occurred_at?: string; p_settlement_id: string };
         Returns: string;
@@ -625,10 +825,10 @@ export type Database = {
           p_amount_cents: number;
           p_description: string;
           p_group_id: string;
+          p_items?: Json;
           p_notes?: string;
           p_occurred_at?: string;
           p_payer_id: string;
-          p_items?: Json;
           p_split_method: Database['public']['Enums']['split_method'];
           p_splits: Json;
         };
@@ -654,8 +854,29 @@ export type Database = {
         };
       };
       create_invite: { Args: { p_group_id: string; p_guest_id?: string }; Returns: string };
+      create_recurring: {
+        Args: {
+          p_amount_cents: number;
+          p_description: string;
+          p_end_date: string;
+          p_first_expense_id?: string;
+          p_frequency: string;
+          p_group_id: string;
+          p_heads_up_days: number;
+          p_items: Json;
+          p_payer_id: string;
+          p_remaining: number;
+          p_split_input: Json;
+          p_split_method: Database['public']['Enums']['split_method'];
+          p_splits: Json;
+          p_start_date: string;
+          p_variable: boolean;
+        };
+        Returns: string;
+      };
       delete_expense: { Args: { p_expense_id: string }; Returns: undefined };
       delete_group: { Args: { p_group_id: string }; Returns: undefined };
+      delete_my_account: { Args: Record<PropertyKey, never>; Returns: undefined };
       expense_snapshot: { Args: { p_expense_id: string }; Returns: Json };
       group_balances: {
         Args: { p_group_id: string };
@@ -672,6 +893,7 @@ export type Database = {
         }[];
       };
       group_role_of: { Args: { p_group_id: string; p_user_id: string }; Returns: Database['public']['Enums']['group_role'] };
+      in_expense_split: { Args: { p_expense_id: string }; Returns: boolean };
       is_group_member: { Args: { p_group_id: string }; Returns: boolean };
       is_group_owner: { Args: { p_group_id: string }; Returns: boolean };
       is_member_of: { Args: { p_group_id: string; p_user_id: string }; Returns: boolean };
@@ -680,7 +902,6 @@ export type Database = {
       mark_notifications_read: { Args: Record<PropertyKey, never>; Returns: undefined };
       member_net_balance: { Args: { p_group_id: string; p_user_id: string }; Returns: number };
       my_group_summaries: { Args: Record<PropertyKey, never>; Returns: Json };
-      my_spending_between: { Args: { p_from: string; p_to: string }; Returns: { group_id: string; my_share: number }[] };
       my_notifications: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -694,10 +915,20 @@ export type Database = {
           id: string;
           kind: string;
           read_at: string;
-          settlement_id: string | null;
-          settlement_status: string | null;
+          recurring_description: string;
+          recurring_id: string;
+          settlement_id: string;
+          settlement_status: string;
         }[];
       };
+      my_spending_between: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          group_id: string;
+          my_share: number;
+        }[];
+      };
+      owns_group_with: { Args: { p_user_id: string }; Returns: boolean };
       payments_to_confirm: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -706,17 +937,18 @@ export type Database = {
           from_name: string;
           from_user_id: string;
           group_currency: string;
-          group_icon: string | null;
+          group_icon: string;
           group_id: string;
           group_name: string;
           id: string;
           occurred_at: string;
         }[];
       };
-      owns_group_with: { Args: { p_user_id: string }; Returns: boolean };
+      receipt_group: { Args: { p_name: string }; Returns: string };
       record_settlement: {
         Args: {
           p_amount_cents: number;
+          p_expense_id?: string;
           p_from_user_id: string;
           p_group_id: string;
           p_note?: string;
@@ -725,16 +957,44 @@ export type Database = {
         };
         Returns: string;
       };
+      recurring_audience: {
+        Args: {
+          r: Omit<
+            Database['public']['Tables']['recurring_expenses']['Row'],
+            Database['public']['Tables']['recurring_expenses']['ComputedFields']
+          >;
+        };
+        Returns: string[];
+      };
+      recurring_date: { Args: { p_frequency: string; p_n: number; p_start: string }; Returns: string };
+      recurring_due: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          description: string;
+          due_date: string;
+          frequency: string;
+          group_id: string;
+          id: string;
+          next_date: string;
+          payer_id: string;
+          split_input: Json;
+          split_method: string;
+        }[];
+      };
+      recurring_today: { Args: { p_user_id: string }; Returns: string };
       remind_to_confirm: { Args: { p_settlement_id: string }; Returns: undefined };
       remind_to_settle: { Args: { p_group_id: string; p_user_id: string }; Returns: undefined };
-      respond_to_payment: { Args: { p_received: boolean; p_settlement_id: string }; Returns: undefined };
       remove_member: { Args: { p_group_id: string; p_user_id: string }; Returns: undefined };
       remove_payid: { Args: Record<PropertyKey, never>; Returns: undefined };
       require_user: { Args: Record<PropertyKey, never>; Returns: string };
+      respond_to_payment: { Args: { p_received: boolean; p_settlement_id: string }; Returns: undefined };
+      run_recurring: { Args: { p_only?: string }; Returns: number };
       set_co_owner: { Args: { p_co_owner: boolean; p_group_id: string; p_user_id: string }; Returns: undefined };
-      set_expense_receipt: { Args: { p_expense_id: string; p_path: string | null }; Returns: undefined };
+      set_expense_receipt: { Args: { p_expense_id: string; p_path: string }; Returns: undefined };
       set_group_icon: { Args: { p_group_id: string; p_icon: string }; Returns: undefined };
+      set_my_time_zone: { Args: { p_time_zone: string }; Returns: undefined };
       set_payid: { Args: { p_account_name?: string; p_type: string; p_value: string }; Returns: undefined };
+      set_recurring_paused: { Args: { p_id: string; p_paused: boolean }; Returns: undefined };
       shares_group_with: { Args: { p_user_id: string }; Returns: boolean };
       simplified_transfers: {
         Args: { p_group_id: string };
@@ -753,21 +1013,42 @@ export type Database = {
           user_id: string;
         }[];
       };
+      stop_recurring: { Args: { p_id: string }; Returns: undefined };
       transfer_ownership: { Args: { p_group_id: string; p_new_owner_id: string }; Returns: undefined };
       update_expense: {
         Args: {
           p_amount_cents: number;
           p_description: string;
           p_expense_id: string;
+          p_items?: Json;
           p_notes?: string;
           p_occurred_at: string;
           p_payer_id: string;
-          p_items?: Json;
           p_split_method: Database['public']['Enums']['split_method'];
           p_splits: Json;
         };
         Returns: undefined;
       };
+      update_recurring: {
+        Args: {
+          p_amount_cents: number;
+          p_description: string;
+          p_end_date: string;
+          p_frequency: string;
+          p_heads_up_days: number;
+          p_id: string;
+          p_items: Json;
+          p_next_date?: string;
+          p_payer_id: string;
+          p_remaining: number;
+          p_split_input: Json;
+          p_split_method: Database['public']['Enums']['split_method'];
+          p_splits: Json;
+          p_variable: boolean;
+        };
+        Returns: undefined;
+      };
+      validate_items: { Args: { p_amount_cents: number; p_items: Json; p_splits: Json }; Returns: undefined };
       validate_splits: { Args: { p_amount_cents: number; p_group_id: string; p_splits: Json }; Returns: undefined };
       void_settlement: { Args: { p_settlement_id: string }; Returns: undefined };
     };
