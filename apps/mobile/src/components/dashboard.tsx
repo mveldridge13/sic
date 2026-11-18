@@ -585,14 +585,22 @@ export function GroupCard({ summary }: { summary: GroupSummary }) {
 
 /** Full-width row card for lists (Groups tab). */
 /** `onPress` overrides opening the group screen (two-pane layouts select it instead); `selected` highlights it. */
+/**
+ * On the right: what you owe or are owed; once that's zero, how many expenses the group has
+ * ("All square" means nothing for a group nobody has spent in), with Closed once it's closed; and in
+ * an empty open group, Add expense.
+ */
 export function GroupListCard({
   summary,
   lastActivity,
+  expenseCount,
   onPress,
   selected,
 }: {
   summary: GroupSummary;
   lastActivity?: string;
+  /** Expenses in the group that you can see. */
+  expenseCount: number;
   onPress?: () => void;
   selected?: boolean;
 }) {
@@ -642,16 +650,44 @@ export function GroupListCard({
           </View>
         ) : null}
       </View>
-      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-        <Text variant="caption" color={myBalance === 0 ? c.settled : balanceColor(c, myBalance)}>
-          {balanceStatus(myBalance)}
-        </Text>
-        {myBalance !== 0 ? (
+      {myBalance !== 0 ? (
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <Text variant="caption" color={balanceColor(c, myBalance)}>
+            {balanceStatus(myBalance)}
+          </Text>
           <Text variant="heading" color={balanceColor(c, myBalance)} style={{ fontVariant: ['tabular-nums'] }}>
             {formatMoney(Math.abs(myBalance), group.currency)}
           </Text>
-        ) : null}
-      </View>
+        </View>
+      ) : expenseCount > 0 || group.closedAt ? (
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          {group.closedAt ? (
+            <Text variant="caption" color={c.settled}>
+              Closed
+            </Text>
+          ) : null}
+          <Text variant="label" muted style={{ fontVariant: ['tabular-nums'] }}>
+            {expenseCount} {expenseCount === 1 ? 'expense' : 'expenses'}
+          </Text>
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Add an expense to ${group.name}`}
+          onPress={() => router.push({ pathname: '/add-expense', params: { groupId: group.id } })}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            backgroundColor: c.surfaceAlt,
+            borderRadius: radius.pill,
+            paddingHorizontal: space.md,
+            paddingVertical: space.xs + 2,
+            opacity: pressed ? 0.7 : 1,
+          })}>
+          <Text variant="label" color={c.primary}>
+            ＋ Add expense
+          </Text>
+        </Pressable>
+      )}
     </Pressable>
   );
 }

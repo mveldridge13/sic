@@ -60,7 +60,8 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
   const money = (cents: number) => formatMoney(cents, group.currency);
   // People in the split can view someone else's expense; only its owner, co-owners and whoever
   // added it can change it (the database enforces the same).
-  const canEdit = seesEverything(group.myRole) || expense.createdById === myId;
+  // Nothing changes in a closed group.
+  const canEdit = !group.closedAt && (seesEverything(group.myRole) || expense.createdById === myId);
   const myShare = expense.splits.find((s) => s.userId === myId)?.amount ?? 0;
   // Effect on your balance: what you paid minus your share.
   const myEffect = (expense.payerId === myId ? expense.amount : 0) - myShare;

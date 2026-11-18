@@ -31,8 +31,14 @@ export interface Group {
   roles: Record<string, GroupRole>;
   /** The signed-in user's role in this group. */
   myRole: GroupRole;
-  /** You put this group away ("Done with this group"): it sits at the bottom of your Groups list. */
+  /** You put this group away ("Hide from my list"): it sits at the bottom of your Groups list. */
   hiddenByMe: boolean;
+  /**
+   * The owner or a co-owner closed it for everyone, once everyone was square. A closed group is
+   * read-only: no new or changed expenses, payments or repeating expenses until it's reopened.
+   */
+  closedAt: string | null;
+  closedBy: string | null;
   createdAt: string;
 }
 
@@ -152,7 +158,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
     supabase
       .from('groups')
       .select(
-        `id, name, currency, icon, created_at,
+        `id, name, currency, icon, created_at, closed_at, closed_by,
          group_members ( user_id, role, left_at, profiles ( id, name, is_guest ) ),
          expenses ( id, description, amount_cents, payer_id, created_by, split_method, occurred_at,
                     created_at, updated_at, deleted_at, items, receipt_path,
@@ -226,6 +232,8 @@ async function fetchTally(myId: string): Promise<TallyData> {
       roles,
       myRole,
       hiddenByMe: hidden.has(g.id),
+      closedAt: g.closed_at,
+      closedBy: g.closed_by,
       createdAt: g.created_at,
     });
 
@@ -528,6 +536,17 @@ export function useRecordSettlement() {
     return data as string;
     },
   );
+}
+
+/**
+ * Owner or co-owner, once everyone's square: closes the group for everyone (read-only, under Closed
+ * on everyone's Groups page). The database enforces who and when.
+ */
+export function useSetGroupClosed() {
+  return useInvalidating(async ({ groupId, closed }: { groupId: string; closed: boolean }) => {
+    const { error } = await supabase.rpc(closed ? 'close_group' : 'reopen_group', { p_group_id: groupId });
+    if (error) throw error;
+  });
 }
 
 /** Owner only. Archives the group for every member; the database enforces the owner check. */

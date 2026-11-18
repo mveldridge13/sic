@@ -20,6 +20,7 @@ import {
   useAddMembers,
   useDeleteGroup,
   useLeaveGroup,
+  useSetGroupClosed,
   useSetGroupHidden,
   useNameOf,
   useRecentlyReminded,
@@ -63,6 +64,7 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
   const deleteGroup = useDeleteGroup();
   const leaveGroup = useLeaveGroup();
   const setHidden = useSetGroupHidden();
+  const setClosed = useSetGroupClosed();
   const { data: partners } = useSplitPartners();
   const picked = useSelection();
   // Owner and co-owners: settle-up reminders, one per person per day.
@@ -110,6 +112,48 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
   const openBreakdown = (withId?: string) =>
     router.push({ pathname: '/balance/[groupId]', params: withId ? { groupId: group.id, with: withId } : { groupId: group.id } });
   const gone = () => (onGone ? onGone() : router.replace('/groups'));
+  const closed = !!group.closedAt;
+  const canClose = seesEverything(group.myRole);
+
+  /** Owner or co-owner: close the group for everyone, once everyone's square. */
+  function confirmClose() {
+    setSheet(null);
+    const waiting = data.pendingPayments.some((p) => p.groupId === group.id);
+    if (transfers.length > 0 || waiting) {
+      Alert.alert(
+        'Not everyone is square yet',
+        waiting
+          ? 'A payment is still waiting to be confirmed. Once it’s confirmed and everyone’s square, you can close the group.'
+          : `Everyone needs to be settled up before the group can be closed. ${transfers
+              .map((t) => `${name(t.fromUserId)} owes ${name(t.toUserId)} ${money(t.amount)}.`)
+              .join(' ')}`,
+      );
+      return;
+    }
+    Alert.alert(
+      `Close “${group.name}”?`,
+      'Everyone’s square. Closing ends the group for everyone: it moves to Closed on their Groups page and nothing can be added or changed. You or a co-owner can reopen it later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Close group',
+          onPress: () =>
+            setClosed.mutate(
+              { groupId: group.id, closed: true },
+              { onError: (e) => Alert.alert('Couldn’t close the group', e instanceof Error ? e.message : 'Please try again.') },
+            ),
+        },
+      ],
+    );
+  }
+
+  function reopen() {
+    setSheet(null);
+    setClosed.mutate(
+      { groupId: group.id, closed: false },
+      { onError: (e) => Alert.alert('Couldn’t reopen the group', e instanceof Error ? e.message : 'Please try again.') },
+    );
+  }
 
   function addPicked() {
     if (!pickedHere.length) return;
@@ -208,6 +252,16 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
         onRefresh={pull.onRefresh}>
         {/* The group's card: its colour, icon, people and what's been spent. */}
         <GroupCard group={group} totalSpent={summary.totalSpent} myShare={summary.myShare} onIconPress={() => setSheet('icon')} />
+
+        {closed ? (
+          <Gutter>
+            <Notice tone="info">
+              {`Closed ${new Date(group.closedAt!).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}${
+                group.closedBy ? ` by ${group.closedBy === myId ? 'you' : name(group.closedBy)}` : ''
+              }. Everyone was square, and nothing can be added or changed.${canClose ? ' To add to it again, reopen it from the ⋯ menu.' : ''}`}
+            </Notice>
+          </Gutter>
+        ) : null}
 
         {inviteError ? (
           <Gutter>
@@ -401,7 +455,9 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
         <View style={{ height: 96 }} />
       </HeroScreen>
 
-      <FloatingButton label="Add expense" onPress={() => router.push({ pathname: '/add-expense', params: { groupId: group.id } })} />
+      {closed ? null : (
+        <FloatingButton label="Add expense" onPress={() => router.push({ pathname: '/add-expense', params: { groupId: group.id } })} />
+      )}
 
       {/* Add people: people you split with, an invite link, or someone by name. */}
       <Sheet
@@ -479,6 +535,16 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
             }}
           />
           <Divider />
+          {canClose ? (
+            <>
+              {closed ? (
+                <MenuRow label="Reopen group" detail="Lets everyone add expenses and payments again" onPress={reopen} />
+              ) : (
+                <MenuRow label="Close group" detail="Once everyone’s square: ends it for everyone" onPress={confirmClose} />
+              )}
+              <Divider />
+            </>
+          ) : null}
           {group.hiddenByMe ? (
             <MenuRow
               label="Bring back to your list"
@@ -490,7 +556,7 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
             />
           ) : (
             <MenuRow
-              label="Done with this group"
+              label="Hide from my list"
               detail="Moves it to Put away on your Groups page. Only for you."
               onPress={() => {
                 setSheet(null);

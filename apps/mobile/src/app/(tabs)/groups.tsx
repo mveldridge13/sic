@@ -23,15 +23,7 @@ const FILTER_WORDS: Record<Exclude<Filter, 'all'>, string> = {
   settled: 'settled groups',
 };
 
-/** A group where nobody owes anybody (not just you). */
-/**
- * Nobody owes anything AND something has been spent. A brand-new group with nothing in it yet
- * stays in the main list instead of being filed away under All square.
- */
-const allSquare = (s: { myBalance: number; transfers: unknown[]; myShare: number; totalSpent: number | null }) =>
-  s.myBalance === 0 && s.transfers.length === 0 && (s.myShare > 0 || (s.totalSpent ?? 0) > 0);
-
-/** A bar at the bottom of the list ("All square 4 ⌄") that opens to show its groups. Starts closed. */
+/** A bar at the bottom of the list ("Put away 4 ⌄") that opens to show its groups. Starts closed. */
 function ClosedSection({ emoji, title, count, children }: { emoji: string; title: string; count: number; children: ReactNode }) {
   const c = useColors();
   const [open, setOpen] = useState(false);
@@ -106,6 +98,13 @@ export default function GroupsScreen() {
     return latest;
   }, [data]);
 
+  // How many expenses each group has (that you can see).
+  const expenseCounts = useMemo(() => {
+    const n = new Map<string, number>();
+    for (const e of data.expenses) n.set(e.groupId, (n.get(e.groupId) ?? 0) + 1);
+    return n;
+  }, [data.expenses]);
+
   const counts = useMemo(
     () => ({
       all: summaries.length,
@@ -127,18 +126,18 @@ export default function GroupsScreen() {
     [summaries, filter, lastActivity],
   );
 
-  // With no filter, two closed sections at the bottom: groups where everyone's square, and groups
-  // you've put away ("Done with this group"). Both come back to the top by themselves when someone
-  // adds an expense.
+  // With no filter, two closed sections at the bottom: groups the owner or a co-owner closed for
+  // everyone, and groups you've hidden from your own list (they come back by themselves when
+  // someone adds an expense). Being square doesn't move a group: it stays until it's closed.
   const sectioned = filter === 'all';
-  const putAway = sectioned ? visible.filter((s) => s.group.hiddenByMe) : [];
-  const square = sectioned ? visible.filter((s) => !s.group.hiddenByMe && allSquare(s)) : [];
-  const active = sectioned ? visible.filter((s) => !s.group.hiddenByMe && !allSquare(s)) : visible;
+  const closed = sectioned ? visible.filter((s) => s.group.closedAt) : [];
+  const putAway = sectioned ? visible.filter((s) => !s.group.closedAt && s.group.hiddenByMe) : [];
+  const active = sectioned ? visible.filter((s) => !s.group.closedAt && !s.group.hiddenByMe) : visible;
   const grid = (list: typeof visible) => (
     <View style={{ flexDirection: wide ? 'row' : 'column', flexWrap: 'wrap', gap: space.md }}>
       {list.map((s) => (
         <View key={s.group.id} style={{ width: wide ? '48.8%' : '100%' }}>
-          <GroupListCard summary={s} lastActivity={lastActivity.get(s.group.id)} />
+          <GroupListCard summary={s} lastActivity={lastActivity.get(s.group.id)} expenseCount={expenseCounts.get(s.group.id) ?? 0} />
         </View>
       ))}
     </View>
@@ -190,9 +189,9 @@ export default function GroupsScreen() {
               grid(active)
             ) : null}
 
-            {square.length > 0 ? (
-              <ClosedSection emoji="🎉" title="All square" count={square.length}>
-                {grid(square)}
+            {closed.length > 0 ? (
+              <ClosedSection emoji="🔒" title="Closed" count={closed.length}>
+                {grid(closed)}
               </ClosedSection>
             ) : null}
             {putAway.length > 0 ? (

@@ -290,6 +290,8 @@ export type Database = {
       groups: {
         Row: {
           archived_at: string | null;
+          closed_at: string | null;
+          closed_by: string | null;
           created_at: string;
           created_by: string;
           currency: string;
@@ -301,6 +303,8 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           archived_at?: string | null;
+          closed_at?: string | null;
+          closed_by?: string | null;
           created_at?: string;
           created_by: string;
           currency: string;
@@ -311,6 +315,8 @@ export type Database = {
         };
         Update: {
           archived_at?: string | null;
+          closed_at?: string | null;
+          closed_by?: string | null;
           created_at?: string;
           created_by?: string;
           currency?: string;
@@ -320,6 +326,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: 'groups_closed_by_fkey';
+            columns: ['closed_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'groups_created_by_fkey';
             columns: ['created_by'];
@@ -815,6 +828,7 @@ export type Database = {
         Returns: undefined;
       };
       claim_receipt_scan: { Args: Record<PropertyKey, never>; Returns: undefined };
+      close_group: { Args: { p_group_id: string }; Returns: undefined };
       complete_recurring_due: { Args: { p_expense_id: string; p_id: string }; Returns: undefined };
       correct_settlement: {
         Args: { p_amount_cents: number; p_note?: string; p_occurred_at?: string; p_settlement_id: string };
@@ -838,6 +852,8 @@ export type Database = {
         Args: { p_currency: string; p_icon?: string; p_name: string };
         Returns: {
           archived_at: string | null;
+          closed_at: string | null;
+          closed_by: string | null;
           created_at: string;
           created_by: string;
           currency: string;
@@ -902,6 +918,7 @@ export type Database = {
           guest_name: string;
         }[];
       };
+      is_group_closed: { Args: { p_group_id: string }; Returns: boolean };
       is_group_member: { Args: { p_group_id: string }; Returns: boolean };
       is_group_owner: { Args: { p_group_id: string }; Returns: boolean };
       is_member_of: { Args: { p_group_id: string; p_user_id: string }; Returns: boolean };
@@ -995,6 +1012,7 @@ export type Database = {
       remind_to_settle: { Args: { p_group_id: string; p_user_id: string }; Returns: undefined };
       remove_member: { Args: { p_group_id: string; p_user_id: string }; Returns: undefined };
       remove_payid: { Args: Record<PropertyKey, never>; Returns: undefined };
+      reopen_group: { Args: { p_group_id: string }; Returns: undefined };
       require_user: { Args: Record<PropertyKey, never>; Returns: string };
       respond_to_payment: { Args: { p_received: boolean; p_settlement_id: string }; Returns: undefined };
       run_recurring: { Args: { p_only?: string }; Returns: number };

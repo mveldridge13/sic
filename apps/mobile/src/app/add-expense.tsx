@@ -43,13 +43,17 @@ import { useAfterTransition } from '@/lib/transitions';
 import { brand, groupColor, radius, space, type, useColors } from '@/theme';
 
 /**
- * The ways to split offered on the form. Amounts and adjustments are covered by Items (one line
- * per person, or one extra plus everything else split equally); expenses saved those ways
- * still show, and open as items when edited.
+ * The ways to split offered on the form. Adjustments are covered by Items (one extra plus
+ * everything else split equally); expenses saved that way still show, and open as items when edited.
  */
-type FormMethod = 'equal' | 'percentage' | 'shares' | 'items';
+type FormMethod = 'equal' | 'exact' | 'percentage' | 'shares' | 'items';
 const METHODS: { id: FormMethod; label: string; hint: string }[] = [
   { id: 'equal', label: 'Equally', hint: 'Everyone ticked pays the same.' },
+  {
+    id: 'exact',
+    label: 'Amounts',
+    hint: 'Enter what each person pays. They must add up to the total.',
+  },
   {
     id: 'percentage',
     label: 'Percent',
@@ -104,6 +108,12 @@ function initialFromSplit(split: SplitInput, memberIds: string[]) {
       included[id] = !!sh;
       if (sh) values[id] = centsToDecimalString(sh.basisPoints).replace(/\.00$/, '');
     }
+  if (split.method === 'exact')
+    for (const id of memberIds) {
+      const sh = split.shares.find((x) => x.userId === id);
+      included[id] = !!sh;
+      if (sh) values[id] = centsToDecimalString(sh.amount);
+    }
   if (split.method === 'shares')
     for (const id of memberIds) {
       const sh = split.shares.find((x) => x.userId === id);
@@ -120,7 +130,8 @@ function initialFromSplit(split: SplitInput, memberIds: string[]) {
       rest: (split.rest ?? 'proportional') as ItemsRest,
     };
   }
-  const method: FormMethod = split.method === 'percentage' || split.method === 'shares' ? split.method : 'equal';
+  const method: FormMethod =
+    split.method === 'percentage' || split.method === 'shares' || split.method === 'exact' ? split.method : 'equal';
   return { method, included, values, items: [newItem()], rest: 'equal' as ItemsRest };
 }
 
@@ -136,6 +147,7 @@ function initialFromExpense(expense: Expense | undefined, memberIds: string[], n
     if (!s) continue;
     if (expense.method === 'percentage' && s.weight != null) values[id] = centsToDecimalString(s.weight).replace(/\.00$/, '');
     if (expense.method === 'shares' && s.weight != null) values[id] = String(s.weight);
+    if (expense.method === 'exact') values[id] = centsToDecimalString(s.amount);
   }
   const toRow = (rowName: string, amount: number, userIds: string[]): ItemRow => ({
     key: nextItemKey++,
@@ -157,15 +169,6 @@ function initialFromExpense(expense: Expense | undefined, memberIds: string[], n
         rest,
       };
     }
-    // Saved by amounts: one line per person, nothing left over.
-    case 'exact':
-      return {
-        method: 'items' as FormMethod,
-        included,
-        values,
-        items: expense.splits.filter((s) => s.amount > 0).map((s) => toRow(name(s.userId), s.amount, [s.userId])),
-        rest: 'equal' as ItemsRest,
-      };
     // Saved with adjustments: each extra is a line, the rest split equally between everyone.
     case 'adjustment': {
       const extras = expense.splits.filter((s) => (s.weight ?? 0) > 0);
@@ -326,7 +329,8 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
 
   const editing = data.expenses.find((e) => e.id === params.expenseId);
   const isEdit = !!params.expenseId;
-  const groups = data.groups;
+  // Closed groups take no new expenses.
+  const groups = useMemo(() => data.groups.filter((g) => !g.closedAt), [data.groups]);
 
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
@@ -494,6 +498,11 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       switch (method) {
         case 'equal':
           return { method, participants: participantIds };
+        case 'exact':
+          return {
+            method,
+            shares: participantIds.map((userId) => ({ userId, amount: parseToCents(values[userId] || '0') })),
+          };
         case 'percentage':
           // "33.33" -> 3333 basis points, using the same exact decimal parser as money.
           return {
@@ -544,7 +553,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     }
   }, [amount, splitInput]);
 
-  /** "20% left to assign" for percentage splits; items that come to more than the total. */
+  /** "20% left to assign" for percentage splits, "$5.00 left to assign" for amounts; items that come to more than the total. */
   const remaining = useMemo(() => {
     if (typeof splitInput === 'string' || !group) return null;
     if (splitInput.method === 'percentage') {
@@ -553,6 +562,13 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       if (Math.abs(left) <= splitInput.shares.length - 1) return null;
       const pct = centsToDecimalString(Math.abs(left)).replace(/\.00$/, '');
       return left > 0 ? `${pct}% left to assign` : `${pct}% too much assigned`;
+    }
+    if (splitInput.method === 'exact' && Number.isFinite(amount) && amount > 0) {
+      const left = amount - splitInput.shares.reduce((a, s) => a + s.amount, 0);
+      if (left === 0) return null;
+      return left > 0
+        ? `${formatMoney(left, group.currency)} left to assign`
+        : `${formatMoney(-left, group.currency)} too much assigned`;
     }
     if (splitInput.method === 'items' && Number.isFinite(amount) && amount > 0) {
       const over = itemsSubtotal(splitInput.items) - amount;
@@ -1083,10 +1099,11 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                           borderRadius: radius.sm,
                           paddingHorizontal: space.sm,
                         }}>
+                        {method === 'exact' && group ? <Text muted>{currencySymbol(group.currency)}</Text> : null}
                         <TextInput
                           value={values[id] ?? ''}
                           onChangeText={(v) => setValues((s) => ({ ...s, [id]: v }))}
-                          placeholder={method === 'shares' ? '1' : '0'}
+                          placeholder={method === 'shares' ? '1' : method === 'exact' ? '0.00' : '0'}
                           placeholderTextColor={c.textMuted}
                           keyboardType={method === 'shares' ? 'number-pad' : 'decimal-pad'}
                           selectionColor={c.focus}
