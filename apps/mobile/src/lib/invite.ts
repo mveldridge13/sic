@@ -15,7 +15,7 @@ export function inviteMessage(groupName: string, token: string, guestName?: stri
  * invite points at a small page (GitHub Pages, docs/invite) that opens sic://invite/<token>
  * and shows the code as a fallback.
  */
-export const INVITE_PAGE = 'https://mveldridge13.github.io/tally/invite/';
+export const INVITE_PAGE = 'https://mveldridge13.github.io/sic/invite/';
 export function inviteLink(token: string) {
   return `${INVITE_PAGE}?code=${encodeURIComponent(token)}`;
 }

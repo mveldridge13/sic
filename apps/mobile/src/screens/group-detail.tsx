@@ -85,6 +85,8 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
   const money = (cents: number) => formatMoney(Math.abs(cents), group.currency);
   const isOwner = group.myRole === 'owner';
   const mine = myTransfers([summary], myId);
+  // Nothing spent yet (e.g. you've just joined): there's nothing to be square about.
+  const nothingYet = myBalance === 0 && summary.myShare === 0 && (summary.totalSpent ?? 0) === 0;
   const owesMe = new Set(mine.filter((t) => !t.iOwe).map((t) => t.other));
   const shownTransfers = webView === 'me' ? transfers.filter((t) => t.fromUserId === myId || t.toUserId === myId) : transfers;
   const othersOnly = transfers.some((t) => t.fromUserId !== myId && t.toUserId !== myId);
@@ -218,7 +220,9 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
           {dueBills.filter((b) => b.groupId === group.id).map((b) => (
             <DueBillCard key={b.id} bill={b} />
           ))}
-          {mine.length === 0 ? (
+          {mine.length === 0 && nothingYet ? (
+            <AllSquareCard emoji="🧾" title="No expenses yet" line="Add an expense and who owes who will show here." />
+          ) : mine.length === 0 ? (
             <AllSquareCard
               line={myBalance === 0 ? 'Nobody owes you and you don’t owe anyone here.' : balanceSentence(myBalance, group.currency)}
             />
@@ -242,7 +246,7 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
                 <Pressable
                   key={uid}
                   accessibilityRole="button"
-                  accessibilityLabel={`${name(uid)}, ${bal === 0 ? 'square' : bal > 0 ? `owed ${money(bal)}` : `owes ${money(bal)}`}`}
+                  accessibilityLabel={nothingYet ? name(uid) : `${name(uid)}, ${bal === 0 ? 'square' : bal > 0 ? `owed ${money(bal)}` : `owes ${money(bal)}`}`}
                   onPress={() => openBreakdown(isMe ? undefined : uid)}
                   unstable_pressDelay={PRESS_DELAY}
                   style={({ pressed }) => ({ alignItems: 'center', gap: 4, width: 68, opacity: pressed ? 0.7 : 1 })}>
@@ -256,7 +260,7 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
                     {isMe ? 'You' : firstName(name(uid))}
                   </Text>
                   <Text variant="caption" color={bal === 0 ? c.textMuted : balanceColor(c, bal)} numberOfLines={1}>
-                    {bal === 0 ? 'square' : `${bal > 0 ? '+' : '−'}${money(bal)}`}
+                    {bal === 0 ? (nothingYet ? ' ' : 'square') : `${bal > 0 ? '+' : '−'}${money(bal)}`}
                   </Text>
                   {group.roles[uid] === 'admin' ? (
                     <Text variant="caption" muted numberOfLines={1} style={{ fontSize: 11 }}>

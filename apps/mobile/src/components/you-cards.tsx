@@ -156,7 +156,15 @@ export function YouCard({
 }
 
 /** Shown instead of the cards when nobody owes anybody. */
-export function AllSquareCard({ line = 'Nobody owes anybody right now.' }: { line?: string }) {
+export function AllSquareCard({
+  line = 'Nobody owes anybody right now.',
+  title = 'You’re all square',
+  emoji = '🎉',
+}: {
+  line?: string;
+  title?: string;
+  emoji?: string;
+}) {
   const c = useColors();
   return (
     <View
@@ -168,9 +176,9 @@ export function AllSquareCard({ line = 'Nobody owes anybody right now.' }: { lin
         borderRadius: radius.xl - 6,
         backgroundColor: c.surfaceAlt,
       }}>
-      <Text style={{ fontSize: 30 }}>🎉</Text>
+      <Text style={{ fontSize: 30 }}>{emoji}</Text>
       <View style={{ flex: 1, gap: 2 }}>
-        <Text variant="heading">You’re all square</Text>
+        <Text variant="heading">{title}</Text>
         <Text muted>{line}</Text>
       </View>
     </View>

@@ -748,12 +748,23 @@ export function useRemovePayId() {
 /** PayID is an Australian service: only shown and offered for AUD. */
 export const PAYID_CURRENCY = 'AUD';
 
+/** Join with an invite. With `guestId`, join as that guest from a group link and take over their share. */
 export function useAcceptInvite() {
-  return useInvalidating(async (token: string) => {
-    const { data, error } = await supabase.rpc('accept_invite', { p_token: token });
+  return useInvalidating(async ({ token, guestId }: { token: string; guestId?: string }) => {
+    const { data, error } = await supabase.rpc('accept_invite', { p_token: token, p_guest_id: guestId });
     if (error) throw error;
     return data;
   });
+}
+
+/**
+ * The guests (people added by name) in the group a link is for, so someone joining can say
+ * which one they are. Empty for an invite sent to a particular guest, or an expired one.
+ */
+export async function inviteGuests(token: string): Promise<{ groupName: string; guests: { id: string; name: string }[] }> {
+  const { data, error } = await supabase.rpc('invite_guests', { p_token: token });
+  if (error) throw error;
+  return { groupName: data[0]?.group_name ?? '', guests: data.map((g) => ({ id: g.guest_id, name: g.guest_name })) };
 }
 
 /** An invite code for the group. Pass `guestId` to invite that guest to join and claim their history. */

@@ -793,7 +793,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      accept_invite: { Args: { p_token: string }; Returns: string };
+      accept_invite: { Args: { p_guest_id?: string; p_token: string }; Returns: string };
       add_guest: { Args: { p_group_id: string; p_name: string }; Returns: string };
       add_members: { Args: { p_group_id: string; p_user_ids: string[] }; Returns: undefined };
       can_manage_recurring: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
@@ -894,6 +894,14 @@ export type Database = {
       };
       group_role_of: { Args: { p_group_id: string; p_user_id: string }; Returns: Database['public']['Enums']['group_role'] };
       in_expense_split: { Args: { p_expense_id: string }; Returns: boolean };
+      invite_guests: {
+        Args: { p_token: string };
+        Returns: {
+          group_name: string;
+          guest_id: string;
+          guest_name: string;
+        }[];
+      };
       is_group_member: { Args: { p_group_id: string }; Returns: boolean };
       is_group_owner: { Args: { p_group_id: string }; Returns: boolean };
       is_member_of: { Args: { p_group_id: string; p_user_id: string }; Returns: boolean };
@@ -901,6 +909,7 @@ export type Database = {
       leave_group: { Args: { p_group_id: string }; Returns: undefined };
       mark_notifications_read: { Args: Record<PropertyKey, never>; Returns: undefined };
       member_net_balance: { Args: { p_group_id: string; p_user_id: string }; Returns: number };
+      move_guest_to: { Args: { p_group_id: string; p_guest_id: string; p_user_id: string }; Returns: undefined };
       my_group_summaries: { Args: Record<PropertyKey, never>; Returns: Json };
       my_notifications: {
         Args: Record<PropertyKey, never>;
