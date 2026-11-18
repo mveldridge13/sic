@@ -6,9 +6,9 @@ import { Alert, Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardFigure, Gutter, HeroScreen, QuickAction, SectionTitle, StatRow, TotalPill } from '@/components/dashboard';
-import { Avatar, Card, Divider, Notice, Text } from '@/components/ui';
+import { Avatar, Button, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
-import { seesEverything, useDeleteExpense, useExpenseHistory, useNameOf, useTallyData } from '@/lib/data';
+import { seesEverything, useDeleteExpense, useExpenseHistory, useNameOf, useRemoveReceipt, useTallyData } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
 import { useReceiptUrl } from '@/lib/receipts';
 import { radius, space, useColors } from '@/theme';
@@ -188,7 +188,7 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
         </View>
       ) : null}
 
-      {expense.receiptPath ? <ReceiptPhoto path={expense.receiptPath} /> : null}
+      {expense.receiptPath ? <ReceiptPhoto expenseId={expense.id} path={expense.receiptPath} canRemove={canEdit} /> : null}
 
       <View style={{ gap: space.md }}>
         <SectionTitle title={METHOD_LABEL[expense.method]} />
@@ -268,12 +268,20 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
   );
 }
 
-/** The scanned receipt: a preview that opens full screen. */
-function ReceiptPhoto({ path }: { path: string }) {
+/** The scanned receipt: a preview that opens full screen. Editors can delete the photo and keep the expense. */
+function ReceiptPhoto({ expenseId, path, canRemove }: { expenseId: string; path: string; canRemove: boolean }) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const url = useReceiptUrl(path);
   const [open, setOpen] = useState(false);
+  const remove = useRemoveReceipt();
+
+  function confirmRemove() {
+    Alert.alert('Remove the receipt photo?', 'The photo will be deleted for good and can’t be recovered. The expense stays as it is.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => remove.mutate({ expenseId, path }) },
+    ]);
+  }
   return (
     <View style={{ gap: space.md }}>
       <SectionTitle title="Receipt" />
@@ -290,6 +298,12 @@ function ReceiptPhoto({ path }: { path: string }) {
         ) : (
           <Text muted>{url.isError ? 'Couldn’t load the receipt photo.' : 'Loading receipt…'}</Text>
         )}
+        {remove.isError ? <Notice>{remove.error.message}</Notice> : null}
+        {canRemove ? (
+          <View style={{ alignItems: 'flex-start', marginTop: space.sm }}>
+            <Button label="Remove photo" kind="danger" size="small" onPress={confirmRemove} loading={remove.isPending} />
+          </View>
+        ) : null}
       </Gutter>
       <Modal visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={{ flex: 1, backgroundColor: '#000' }}>

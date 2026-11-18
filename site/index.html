@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sic. · sharing is caring</title>
+<meta name="description" content="sic. is the easy way to split costs with friends, housemates and family: add what you spent, see who owes who, and settle up.">
+<meta property="og:title" content="sic. · sharing is caring">
+<meta property="og:description" content="Split costs with friends, housemates and family: add what you spent, see who owes who, and settle up.">
+<meta property="og:image" content="https://sic-app.com/icon.png">
+<meta property="og:url" content="https://sic-app.com/">
+<meta name="theme-color" content="#605574">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep: #605574;
+    --deepest: #3F3650;
+    --cream: #FAF0EB;
+    --lavender: #E6DDF2;
+    --lavender-soft: #F3EEF9;
+    --coral: #E4928A;
+    --coral-soft: #F7DDD8;
+    --red: #EF4444;
+    --text: #2F2838;
+    --muted: #6E6478;
+    --surface: #FFFFFF;
+    --bg: var(--cream);
+    --radius: 24px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1E1A24;
+      --surface: #28222F;
+      --lavender-soft: #3A3148;
+      --text: #F4ECF0;
+      --muted: #B5A9BD;
+      --coral-soft: #4A3036;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  /* ── Header + hero (purple) ─────────────────────────────── */
+  .hero { background: var(--deep); color: #fff; overflow: hidden; }
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .nav img { width: 150px; }
+  @media (max-width: 860px) { .nav img { width: 124px; } }
+  .nav a { font-weight: 600; font-size: 15px; text-decoration: none; opacity: .9; }
+  .nav a:hover { opacity: 1; text-decoration: underline; }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 40px 0 88px; }
+  .hero h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 800; margin: 0 0 20px; }
+  .hero h1 .dot { color: var(--red); }
+  .hero p.lead { font-size: 20px; color: rgba(255,255,255,.84); margin: 0 0 32px; max-width: 34ch; }
+  .badges { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 14px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); font-weight: 600; font-size: 15px; }
+  .badge small { display: block; font-weight: 500; font-size: 12px; opacity: .75; }
+  .soon { font-size: 14px; color: rgba(255,255,255,.7); margin-top: 14px; }
+
+  /* Phone illustration */
+  .phone { justify-self: center; width: min(320px, 100%); aspect-ratio: 9 / 18.5; border-radius: 44px; background: #1b1722; padding: 12px; box-shadow: 0 40px 80px rgba(0,0,0,.35); transform: rotate(3deg); }
+  .screen { height: 100%; border-radius: 34px; background: var(--cream); color: #2F2838; padding: 22px 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .screen .hi { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+  .screen .sub { font-size: 12px; color: #6E6478; margin-top: -8px; }
+  .card-total { background: var(--coral); color: #fff; border-radius: 20px; padding: 16px; }
+  .card-total .lbl { font-size: 11px; opacity: .9; }
+  .card-total .amt { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+  .card-total .note { font-size: 11px; opacity: .9; }
+  .row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 10px 12px; font-size: 13px; }
+  .row .em { width: 34px; height: 34px; border-radius: 12px; background: var(--lavender); display: grid; place-items: center; font-size: 17px; }
+  .row .t { flex: 1; font-weight: 600; }
+  .row .t span { display: block; font-weight: 400; font-size: 11px; color: #6E6478; }
+  .row .v { font-weight: 700; }
+  .row .v.owed { color: var(--deep); }
+  .add { margin-top: auto; background: var(--deep); color: #fff; text-align: center; font-weight: 700; border-radius: 16px; padding: 12px; font-size: 14px; }
+
+  /* ── Sections ──────────────────────────────────────────── */
+  section { padding: 88px 0; }
+  .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--coral); margin: 0 0 10px; }
+  h2 { font-size: clamp(30px, 4vw, 42px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; }
+  .intro { color: var(--muted); max-width: 56ch; margin: 0 0 44px; font-size: 18px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; }
+  .step { background: var(--surface); border-radius: var(--radius); padding: 28px; }
+  .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--deep); color: #fff; font-weight: 800; margin-bottom: 18px; }
+  .step h3, .feature h3 { margin: 0 0 6px; font-size: 19px; }
+  .step p, .feature p { margin: 0; color: var(--muted); font-size: 16px; }
+
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature { background: var(--lavender-soft); border-radius: var(--radius); padding: 28px; }
+  .feature .icon { font-size: 30px; margin-bottom: 14px; }
+
+  .band { background: var(--deep); color: #fff; border-radius: 32px; padding: 56px 40px; text-align: center; }
+  .band img { width: 220px; margin: 0 auto 18px; }
+  .band p { color: rgba(255,255,255,.84); max-width: 46ch; margin: 0 auto; font-size: 18px; }
+
+  footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: center; }
+  footer img { width: 56px; }
+  .dark-only { display: none; }
+  @media (prefers-color-scheme: dark) { .dark-only { display: block; } .light-only { display: none; } }
+
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; padding-bottom: 64px; }
+    .phone { width: min(280px, 80%); transform: none; }
+    .steps, .features { grid-template-columns: 1fr; }
+    section { padding: 64px 0; }
+    .band { padding: 44px 24px; }
+  }
+
+  /* "sic." in running text: brand purple with the red full stop (cream on purple areas). */
+  .sic { color: var(--deep); font-weight: 700; white-space: nowrap; }
+  .sic-dot { color: var(--red); }
+  .hero .sic, .band .sic, header .sic { color: #fff; }
+  @media (prefers-color-scheme: dark) { .sic { color: #E6DDF2; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="nav">
+      <img src="logo-full-light.png" alt="sic. sharing is caring">
+      <a href="#how">How it works</a>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <h1>Split costs, not friendships<span class="dot">.</span></h1>
+        <p class="lead"><span class="sic">sic<span class="sic-dot">.</span></span> keeps track of who paid for what in your trips, share houses and dinners, so everyone knows where they stand and settling up takes seconds.</p>
+        <div class="badges">
+          <span class="badge">▶&nbsp; <span><small>Coming soon to</small>Google Play</span></span>
+          <span class="badge"><span><small>Coming soon to the</small>App Store</span></span>
+        </div>
+      </div>
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="hi">Good evening 👋</div>
+          <div class="sub">Here's where you stand with your groups.</div>
+          <div class="card-total">
+            <div class="lbl">Your total position</div>
+            <div class="amt">+$42.50</div>
+            <div class="note">You're owed across 3 groups</div>
+          </div>
+          <div class="row"><div class="em">🏖️</div><div class="t">Byron trip<span>Sam owes you</span></div><div class="v owed">$28.00</div></div>
+          <div class="row"><div class="em">🏠</div><div class="t">Housemates<span>You owe Alex</span></div><div class="v">$15.50</div></div>
+          <div class="row"><div class="em">🍝</div><div class="t">Friday dinner<span>You're owed</span></div><div class="v owed">$30.00</div></div>
+          <div class="add">+ Add expense</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="how">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2>Three steps. No spreadsheets.</h2>
+      <p class="intro">Start a group, add what you spend as you go, and let <span class="sic">sic<span class="sic-dot">.</span></span> work out the simplest way to square up.</p>
+      <div class="steps">
+        <div class="step"><h3>Start a group</h3><p>A trip, your house, a dinner club. Invite people with a link, or just add their name and they can join later.</p></div>
+        <div class="step"><h3>Add expenses</h3><p>Split equally, by amounts, by percentage or item by item. Snap a receipt and <span class="sic">sic<span class="sic-dot">.</span></span> reads it for you.</p></div>
+        <div class="step"><h3>Settle up</h3><p>See exactly who owes who, pay back with PayID, and the other person confirms it landed.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <p class="eyebrow">Made for real life</p>
+      <h2>Everything a shared tab needs</h2>
+      <p class="intro">Built for the way people actually share costs: rent that repeats, dinners where someone had the lobster, and that friend who isn't on the app yet.</p>
+      <div class="features">
+        <div class="feature"><div class="icon">🧾</div><h3>Scan receipts</h3><p>Take a photo and the shop, total and items fill themselves in, ready to split.</p></div>
+        <div class="feature"><div class="icon">🔁</div><h3>Recurring bills</h3><p>Rent, power and subscriptions add themselves on time, every time.</p></div>
+        <div class="feature"><div class="icon">🍽️</div><h3>Split by item</h3><p>Everyone pays for what they had, with tax and tip shared fairly.</p></div>
+        <div class="feature"><div class="icon">🤝</div><h3>Simple settling</h3><p>The fewest payments to get everyone square, with reminders when needed.</p></div>
+        <div class="feature"><div class="icon">🔒</div><h3>Private by design</h3><p>Members see what involves them; the group owner sees the full picture.</p></div>
+        <div class="feature"><div class="icon">👋</div><h3>Guests welcome</h3><p>Add someone by name now. When they join, their share becomes theirs.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="band">
+        <img src="logo-light.png" alt="sic.">
+        <p>Coming soon to Android and iOS</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <img class="light-only" src="logo-dark.png" alt="sic.">
+    <img class="dark-only" src="logo-light.png" alt="sic.">
+    <span>© 2026 <span class="sic">sic<span class="sic-dot">.</span></span> · sharing is caring · <a href="/privacy">Privacy policy</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

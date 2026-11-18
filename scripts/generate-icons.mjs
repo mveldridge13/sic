@@ -94,6 +94,8 @@ write(join(images, 'logo-dark.png'), png(paint(LOGO, PURPLE)));
 write(join(images, 'logo-light.png'), png(paint(LOGO, CREAM)));
 // The invite web page has a purple header.
 write(join(here, '../docs/invite/logo.png'), png(paint(LOGO, CREAM)));
+// The website's header: the whole logo with "sharing is caring" under it, cream for the purple header.
+write(join(here, '../site/logo-full-light.png'), png(paint(FULL, CREAM)));
 
 const light = paint(LOGO, CREAM);
 // iOS / store icon: full-bleed purple with the cream logo.

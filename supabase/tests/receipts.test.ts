@@ -110,16 +110,31 @@ describe('Receipts', () => {
     const expenseId = await addExpense(bob);
     await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
 
-    // While the expense exists, the owner can't remove Bob's photo.
-    await alice.client.storage.from('receipts').remove([path]);
-    expect(await canRead(bob, path)).toBe(true);
-
     // Once the owner deletes the expense, she can; Cara (in the split, but not an editor) still can't.
     expect((await alice.client.rpc('delete_expense', { p_expense_id: expenseId })).error).toBeNull();
     await cara.client.storage.from('receipts').remove([path]);
     expect(await canRead(bob, path)).toBe(true);
     await alice.client.storage.from('receipts').remove([path]);
     expect(await canRead(bob, path)).toBe(false);
+  });
+
+  it('lets an editor remove the photo from an expense and keep the expense', async () => {
+    const path = `${groupId}/${uuid()}.jpg`;
+    await upload(bob, path);
+    const expenseId = await addExpense(bob);
+    await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
+
+    // Cara is in the split but can't edit: the photo stays.
+    await cara.client.storage.from('receipts').remove([path]);
+    expect(await canRead(bob, path)).toBe(true);
+
+    // The owner (an editor) removes it, then detaches it; the expense is still there.
+    const { data: removed } = await alice.client.storage.from('receipts').remove([path]);
+    expect(removed).toHaveLength(1);
+    expect((await alice.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: null })).error).toBeNull();
+    expect(await canRead(bob, path)).toBe(false);
+    const { data: e } = await bob.client.from('expenses').select('receipt_path, deleted_at').eq('id', expenseId).single();
+    expect(e).toEqual({ receipt_path: null, deleted_at: null });
   });
 
   it('lets you delete only your own photos', async () => {

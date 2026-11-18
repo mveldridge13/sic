@@ -467,6 +467,22 @@ export function useDeleteExpense() {
   });
 }
 
+/**
+ * Delete an expense's receipt photo for good and keep the expense. Whoever can edit the expense
+ * can do this. The file goes first (only possible through Storage), then it's detached.
+ */
+export function useRemoveReceipt() {
+  return useInvalidating(async ({ expenseId, path }: { expenseId: string; path: string }) => {
+    const { data: removed, error: removeError } = await supabase.storage.from('receipts').remove([path]);
+    if (removeError) throw removeError;
+    // Storage reports success even when it wasn't allowed to delete anything.
+    if (!removed?.length) throw new Error('Couldn’t remove the photo. Only the person who added this expense, or the group owner, can.');
+    // The function takes null to detach the photo; the generated types don't know it's nullable.
+    const { error } = await supabase.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: null as unknown as string });
+    if (error) throw error;
+  });
+}
+
 export interface ExpenseRevision {
   id: string;
   editedById: string;
