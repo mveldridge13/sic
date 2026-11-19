@@ -12,7 +12,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, useColorScheme, View
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { netByCurrency, type GroupSummary } from '@/lib/data';
+import { netByCurrency, nothingSpent, type GroupSummary } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
 import { PRESS_DELAY, balanceColor, brand, radius, space, useColors } from '@/theme';
 import { CONTENT_MAX_WIDTH, useWidthClass } from '@/lib/layout';
@@ -361,7 +361,7 @@ export function PositionFigure({ summaries }: { summaries: GroupSummary[] }) {
       label="Your total position"
       value={`${sign}${formatMoney(Math.abs(primary.amount), primary.currency)}`}
       note={
-        (primary.amount === 0 ? 'You’re all square' : primary.amount > 0 ? `You’re owed ${where}` : `You owe ${where}`) +
+        (nothingSpent(summaries) ? 'No expenses yet' : primary.amount === 0 ? 'You’re all square' : primary.amount > 0 ? `You’re owed ${where}` : `You owe ${where}`) +
         (others.length > 0
           ? ` · also ${others.map((o) => `${o.amount >= 0 ? '+' : '−'}${formatMoney(Math.abs(o.amount), o.currency)}`).join(', ')}`
           : '')

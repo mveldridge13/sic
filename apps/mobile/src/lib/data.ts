@@ -332,6 +332,14 @@ export interface GroupSummary {
   totalSpent: Cents | null;
 }
 
+/**
+ * Nothing spent in any of these groups yet (e.g. brand new, or you've just joined): there's
+ * nothing to be square about, so say "No expenses yet" rather than "all square".
+ */
+export function nothingSpent(summaries: GroupSummary[]): boolean {
+  return summaries.every((s) => s.myBalance === 0 && s.myShare === 0 && (s.totalSpent ?? 0) === 0);
+}
+
 /** Shape of one entry from the my_group_summaries() database function. */
 interface ServerLedger {
   group_id: string;

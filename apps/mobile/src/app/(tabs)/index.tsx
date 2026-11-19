@@ -13,7 +13,7 @@ import { Bouncy, buzz, CountUp } from '@/components/fun';
 import { Avatar, Card, Notice, Text } from '@/components/ui';
 import { AllSquareCard, myTransfers, YouCard } from '@/components/you-cards';
 import { useMyId } from '@/lib/auth';
-import { useMonthSpending, usePaymentsToConfirm, useRecurringDue, useTallyData } from '@/lib/data';
+import { nothingSpent, useMonthSpending, usePaymentsToConfirm, useRecurringDue, useTallyData } from '@/lib/data';
 import { DueBillCard } from '@/components/recurring';
 import { ConfirmPaymentCard } from '@/components/confirm-payment';
 import { firstName, greeting } from '@/lib/format';
@@ -29,7 +29,7 @@ import { brand, radius, space, useColors } from '@/theme';
  * The cards stay rendered and the section's height animates between 0 and their measured height,
  * so the page below slides instead of jumping when it opens or closes.
  */
-function ToSettle({ items }: { items: ReturnType<typeof myTransfers> }) {
+function ToSettle({ items, noExpenses }: { items: ReturnType<typeof myTransfers>; noExpenses: boolean }) {
   const c = useColors();
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -85,7 +85,9 @@ function ToSettle({ items }: { items: ReturnType<typeof myTransfers> }) {
         <View
           style={{ position: 'absolute', top: 0, left: 0, right: 0, paddingTop: space.md, gap: space.md }}
           onLayout={(e) => contentHeight.set(e.nativeEvent.layout.height)}>
-          {items.length === 0 ? (
+          {items.length === 0 && noExpenses ? (
+            <AllSquareCard emoji="🧾" title="No expenses yet" line="Add an expense and who owes who will show here." />
+          ) : items.length === 0 ? (
             <AllSquareCard />
           ) : (
             items.map((t) => <YouCard key={`${t.group.id}-${t.other}-${t.iOwe}`} {...t} showGroup />)
@@ -139,6 +141,7 @@ export default function HomeScreen() {
 
   const me = data.people[myId]?.name;
   const hasGroups = summaries.length > 0;
+  const noExpenses = nothingSpent(summaries);
   const where = summaries.length === 1 ? 'in your group' : `across ${summaries.length} groups`;
   const sign = primary.amount > 0 ? '+' : primary.amount < 0 ? '−' : '';
   const big = { fontSize: 40, lineHeight: 48, fontWeight: '800', letterSpacing: -1.2, fontVariant: ['tabular-nums'] } as const;
@@ -205,7 +208,7 @@ export default function HomeScreen() {
                   <CountUp cents={Math.abs(primary.amount)} currency={primary.currency} style={[big, { color: brand.onCoral }]} />
                 </View>
                 <CardText variant="caption" muted>
-                  {(primary.amount === 0 ? 'You’re all square 🎉' : primary.amount > 0 ? `You’re owed ${where}` : `You owe ${where}`) +
+                  {(noExpenses ? 'No expenses yet' : primary.amount === 0 ? 'You’re all square 🎉' : primary.amount > 0 ? `You’re owed ${where}` : `You owe ${where}`) +
                     (others.length > 0
                       ? ` · also ${others.map((o) => `${o.amount >= 0 ? '+' : '−'}${formatMoney(Math.abs(o.amount), o.currency)}`).join(', ')}`
                       : '')}
@@ -248,7 +251,7 @@ export default function HomeScreen() {
         ) : null}
 
         {hasGroups ? (
-          <ToSettle items={myTransfers(summaries, myId)} />
+          <ToSettle items={myTransfers(summaries, myId)} noExpenses={noExpenses} />
         ) : (
           <Gutter>
             <Card style={{ gap: space.xs }}>
