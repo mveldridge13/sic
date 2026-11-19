@@ -11,7 +11,7 @@ import { FlippingSummaryCard } from '@/components/summary-flip';
 import { CardText, Gutter, HeroScreen, StatRow, TotalPill, usePosition } from '@/components/dashboard';
 import { Bouncy, buzz, CountUp } from '@/components/fun';
 import { Avatar, Card, Notice, Text } from '@/components/ui';
-import { AllSquareCard, myTransfers, YouCard } from '@/components/you-cards';
+import { myTransfers, YouCard } from '@/components/you-cards';
 import { useMyId } from '@/lib/auth';
 import { nothingSpent, useMonthSpending, usePaymentsToConfirm, useRecurringDue, useTallyData } from '@/lib/data';
 import { DueBillCard } from '@/components/recurring';
@@ -45,6 +45,31 @@ function ToSettle({ items, noExpenses }: { items: ReturnType<typeof myTransfers>
     setOpen(next);
     progress.set(withTiming(next ? 1 : 0, { duration: reduce ? 0 : 280, easing: Easing.out(Easing.cubic) }));
   };
+  // Nothing to settle: a plain header that says so, with no arrow and nothing to open.
+  if (items.length === 0) {
+    return (
+      <Gutter>
+        <View
+          accessibilityLabel={`To settle: ${noExpenses ? 'no expenses yet' : 'all square'}`}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: space.sm,
+            padding: space.lg,
+            borderRadius: radius.xl - 6,
+            backgroundColor: c.surfaceAlt,
+          }}>
+          <Text style={{ fontSize: 22 }}>🤝</Text>
+          <Text variant="heading" style={{ flex: 1, fontSize: 19, fontWeight: '700' }}>
+            To settle
+          </Text>
+          <Text variant="label" muted>
+            {noExpenses ? 'No expenses yet' : 'All square 🎉'}
+          </Text>
+        </View>
+      </Gutter>
+    );
+  }
   return (
     <Gutter>
       <View>
@@ -66,13 +91,11 @@ function ToSettle({ items, noExpenses }: { items: ReturnType<typeof myTransfers>
         <Text variant="heading" style={{ flex: 1, fontSize: 19, fontWeight: '700' }}>
           To settle
         </Text>
-        {items.length > 0 ? (
-          <View style={{ backgroundColor: brand.deep, borderRadius: radius.pill, paddingHorizontal: space.sm + 2, paddingVertical: 2 }}>
-            <Text variant="label" color={brand.onDeep} style={{ fontWeight: '700' }}>
-              {items.length}
-            </Text>
-          </View>
-        ) : null}
+        <View style={{ backgroundColor: brand.deep, borderRadius: radius.pill, paddingHorizontal: space.sm + 2, paddingVertical: 2 }}>
+          <Text variant="label" color={brand.onDeep} style={{ fontWeight: '700' }}>
+            {items.length}
+          </Text>
+        </View>
         <MaterialIcons name={open ? 'expand-less' : 'expand-more'} size={26} color={c.textMuted} />
       </Bouncy>
 
@@ -85,13 +108,9 @@ function ToSettle({ items, noExpenses }: { items: ReturnType<typeof myTransfers>
         <View
           style={{ position: 'absolute', top: 0, left: 0, right: 0, paddingTop: space.md, gap: space.md }}
           onLayout={(e) => contentHeight.set(e.nativeEvent.layout.height)}>
-          {items.length === 0 && noExpenses ? (
-            <AllSquareCard emoji="🧾" title="No expenses yet" line="Add an expense and who owes who will show here." />
-          ) : items.length === 0 ? (
-            <AllSquareCard />
-          ) : (
-            items.map((t) => <YouCard key={`${t.group.id}-${t.other}-${t.iOwe}`} {...t} showGroup />)
-          )}
+          {items.map((t) => (
+            <YouCard key={`${t.group.id}-${t.other}-${t.iOwe}`} {...t} showGroup />
+          ))}
         </View>
       </Animated.View>
       </View>

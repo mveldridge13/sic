@@ -265,9 +265,11 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
 
         {/* You: who you owe and who owes you, each with its action. Recurring bills waiting for an amount first. */}
         <Gutter>
-          {dueBills.filter((b) => b.groupId === group.id).map((b) => (
-            <DueBillCard key={b.id} bill={b} />
-          ))}
+          {dueBills
+            .filter((b) => b.groupId === group.id)
+            .map((b) => (
+              <DueBillCard key={b.id} bill={b} />
+            ))}
           {/* A closed group: its closing message takes the place of "You're all square". */}
           {closed && mine.length === 0 ? (
             <AllSquareCard
@@ -307,7 +309,9 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
                 <Pressable
                   key={uid}
                   accessibilityRole="button"
-                  accessibilityLabel={nothingYet ? name(uid) : `${name(uid)}, ${bal === 0 ? 'square' : bal > 0 ? `owed ${money(bal)}` : `owes ${money(bal)}`}`}
+                  accessibilityLabel={
+                    nothingYet ? name(uid) : `${name(uid)}, ${bal === 0 ? 'square' : bal > 0 ? `owed ${money(bal)}` : `owes ${money(bal)}`}`
+                  }
                   onPress={() => openBreakdown(isMe ? undefined : uid)}
                   unstable_pressDelay={PRESS_DELAY}
                   style={({ pressed }) => ({ alignItems: 'center', gap: 4, width: 68, opacity: pressed ? 0.7 : 1 })}>
@@ -362,28 +366,31 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
                 </Pressable>
               );
             })}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Add people"
-              onPress={() => setSheet('people')}
-              style={({ pressed }) => ({ alignItems: 'center', gap: 4, width: 68, opacity: pressed ? 0.7 : 1 })}>
-              <View
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 26,
-                  borderWidth: 2,
-                  borderStyle: 'dashed',
-                  borderColor: c.border,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Text style={{ fontSize: 24, color: c.focus }}>+</Text>
-              </View>
-              <Text variant="label" color={c.focus}>
-                Add
-              </Text>
-            </Pressable>
+            {/* Nobody can be added to a closed group. */}
+            {closed ? null : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Add people"
+                onPress={() => setSheet('people')}
+                style={({ pressed }) => ({ alignItems: 'center', gap: 4, width: 68, opacity: pressed ? 0.7 : 1 })}>
+                <View
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    borderWidth: 2,
+                    borderStyle: 'dashed',
+                    borderColor: c.border,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <Text style={{ fontSize: 24, color: c.focus }}>+</Text>
+                </View>
+                <Text variant="label" color={c.focus}>
+                  Add
+                </Text>
+              </Pressable>
+            )}
           </ScrollView>
         </View>
 
