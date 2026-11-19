@@ -833,7 +833,9 @@ export interface AppNotification {
     | 'recurring_heads_up'
     | 'recurring_added'
     | 'recurring_due'
-    | 'recurring_due_reminder';
+    | 'recurring_due_reminder'
+    | 'made_owner'
+    | 'owner_handed_over';
   /** Recurring notifications: which recurring expense, and its name. */
   recurringId: string | null;
   recurringDescription: string | null;

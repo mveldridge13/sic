@@ -142,6 +142,9 @@ describe('Membership: leave, remove, transfer ownership', () => {
 
     const { data: roles } = await sam.client.from('group_members').select('user_id, role').eq('group_id', groupId).is('left_at', null);
     expect(roles).toEqual(expect.arrayContaining([{ user_id: sam.id, role: 'owner' }, { user_id: owner.id, role: 'member' }]));
+    // Sam is told the group is theirs now.
+    const { data: notes } = await sam.client.rpc('my_notifications');
+    expect((notes as { kind: string; group_id: string }[]).some((n) => n.kind === 'made_owner' && n.group_id === groupId)).toBe(true);
 
     expect((await owner.client.rpc('leave_group', { p_group_id: groupId })).error).toBeNull();
     expect((await sam.client.rpc('delete_group', { p_group_id: groupId })).error).toBeNull();

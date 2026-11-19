@@ -69,6 +69,14 @@ function Row({ n }: { n: AppNotification }) {
           <Text variant="body">
             {bold(n.actorName)} made you a co-owner of {bold(n.group.name)} · You can now see everything in this group
           </Text>
+        ) : n.kind === 'made_owner' ? (
+          <Text variant="body">
+            {bold(n.actorName)} made you the owner of {bold(n.group.name)} · You now manage the group
+          </Text>
+        ) : n.kind === 'owner_handed_over' ? (
+          <Text variant="body">
+            {bold(n.actorName)} deleted their account, so you’re now the owner of {bold(n.group.name)}
+          </Text>
         ) : n.kind === 'removed_from_group' ? (
           <Text variant="body">
             {bold(n.actorName)} removed you from {bold(n.group.name)}

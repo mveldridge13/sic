@@ -103,6 +103,15 @@ describe('Deleting your account', () => {
     expect(byId[alice.id].role).toBe('member');
   });
 
+  it('the new owner is told the group is theirs now', async () => {
+    const { data } = await cara.client.rpc('my_notifications');
+    const note = (data as { kind: string; group_id: string; actor_name: string }[]).find((n) => n.kind === 'owner_handed_over');
+    expect(note).toMatchObject({ group_id: shared, actor_name: 'DelAlice' });
+    // Nobody else is told.
+    const { data: bobs } = await bob.client.rpc('my_notifications');
+    expect((bobs as { kind: string }[]).some((n) => n.kind === 'owner_handed_over')).toBe(false);
+  });
+
   it('a group with nobody else with an account is deleted', async () => {
     const { data } = await bob.client.rpc('my_group_summaries');
     expect(JSON.stringify(data)).not.toContain(solo);
