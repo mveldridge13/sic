@@ -34,7 +34,11 @@ export function isNetworkError(e: unknown): boolean {
   if (err.name === 'AbortError' || /abort/i.test(message)) return true;
   // Postgres and PostgREST errors carry a code; a dropped connection doesn't.
   if (typeof err.code === 'string' && err.code !== '') return false;
-  return /network request failed|failed to fetch|networkerror|load failed|network|timed? ?out|internet/i.test(message);
+  // The database client turns a request that got no answer into an error with an empty code.
+  if (err.code === '') return true;
+  // Each platform words it differently: "Network request failed" (phones), "fetch failed",
+  // "Failed to fetch" (Chrome), "Load failed" (Safari), "NetworkError…" (Firefox).
+  return /fetch|network|load failed|timed? ?out|internet|connection|offline|unreachable|ENOTFOUND|ECONN/i.test(message);
 }
 
 /** A friendlier message for things that need a connection. */
