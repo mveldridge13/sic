@@ -283,6 +283,10 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
           ) : (
             mine.map((t) => <YouCard key={`${t.other}-${t.iOwe}`} {...t} />)
           )}
+          {/* Owner and co-owners: once everyone's square, the group can be closed for everyone. */}
+          {canClose && !closed && !nothingYet && transfers.length === 0 ? (
+            <Button label="Close group" kind="secondary" onPress={confirmClose} loading={setClosed.isPending} />
+          ) : null}
         </Gutter>
 
         {/* People: a row of faces with each person's balance; + opens Add people. */}
