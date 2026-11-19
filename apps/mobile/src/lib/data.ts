@@ -1,11 +1,38 @@
-import { type PayIdType, computeSplit, convertSplit, type Balances, type Cents, type SplitInput, type SplitItem, type SplitShare, type Transfer } from '@tally/shared';
+import {
+  type PayIdType,
+  computeSplit,
+  convertSplit,
+  simplifyDebts,
+  type Balances,
+  type Cents,
+  type SplitInput,
+  type SplitItem,
+  type SplitShare,
+  type Transfer,
+} from '@tally/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
-import { useMyId } from './auth';
+import { useAuth, useMyId } from './auth';
 import { deviceCurrency, deviceTimeZone } from './currencies';
 import { isCategoryId, type CategoryId } from './categories';
 import type { Json } from './database.types';
+import {
+  addToOutbox,
+  explainOffline,
+  isNetworkError,
+  isOnline,
+  loadCache,
+  newId,
+  outboxEntry,
+  removeFromOutbox,
+  replaceInOutbox,
+  saveCache,
+  setOnline,
+  useOutbox,
+  withTimeout,
+  type OutboxEntry,
+} from './offline';
 import { supabase } from './supabase';
 
 /**
@@ -79,7 +106,12 @@ export interface Expense {
   occurredAt: string;
   createdAt: string;
   updatedAt: string;
+  /** Saved on this phone with no signal: waiting to go up, or turned down by the database (syncError says why). */
+  sync?: SyncState;
+  syncError?: string;
 }
+
+export type SyncState = 'waiting' | 'failed';
 
 /**
  * What was actually paid when it wasn't in the group's currency. The rate (group currency per 1 unit
@@ -114,6 +146,9 @@ export interface Settlement {
    * Pending payments don't count towards any balance; they're kept in `pendingPayments`.
    */
   status: 'recorded' | 'pending';
+  /** Saved on this phone with no signal (see Expense.sync). */
+  sync?: SyncState;
+  syncError?: string;
 }
 
 /** A payment someone says they made to you, waiting for you to confirm or say it never arrived. */
@@ -201,7 +236,20 @@ export interface GroupLedger {
   transfers: Transfer[];
 }
 
-const EMPTY: TallyData = { me: null, payIds: {}, people: {}, groups: [], expenses: [], settlements: [], pendingPayments: [], ledgers: {}, savedSplits: [] };
+/** The signed-in account's id, outside React. */
+const myIdNow = () => useAuth.getState().session?.user.id ?? '';
+
+const EMPTY: TallyData = {
+  me: null,
+  payIds: {},
+  people: {},
+  groups: [],
+  expenses: [],
+  settlements: [],
+  pendingPayments: [],
+  ledgers: {},
+  savedSplits: [],
+};
 export const TALLY_KEY = ['tally'] as const;
 
 async function fetchTally(myId: string): Promise<TallyData> {
@@ -231,13 +279,27 @@ async function fetchTally(myId: string): Promise<TallyData> {
     // Only your own rows (RLS). Nobody else can see which groups you've put away.
     supabase.from('hidden_groups').select('group_id'),
     // Saved splits and each group's default. Asked for separately so a failure here only hides them.
-    supabase.from('saved_splits').select('id, group_id, name, method, shares, created_by, created_at, updated_by, updated_at').order('name'),
+    supabase
+      .from('saved_splits')
+      .select('id, group_id, name, method, shares, created_by, created_at, updated_by, updated_at')
+      .order('name'),
     supabase.from('groups').select('id, default_split_id').is('archived_at', null),
   ]);
   if (groupsRes.error) throw groupsRes.error;
   if (ledgersRes.error) throw ledgersRes.error;
+  setOnline(true);
 
-  const data: TallyData = { me: null, payIds: {}, people: {}, groups: [], expenses: [], settlements: [], pendingPayments: [], ledgers: {}, savedSplits: [] };
+  const data: TallyData = {
+    me: null,
+    payIds: {},
+    people: {},
+    groups: [],
+    expenses: [],
+    settlements: [],
+    pendingPayments: [],
+    ledgers: {},
+    savedSplits: [],
+  };
   for (const l of (ledgersRes.data ?? []) as unknown as ServerLedger[]) {
     data.ledgers[l.group_id] = {
       myBalance: l.my_balance,
@@ -358,14 +420,150 @@ async function fetchTally(myId: string): Promise<TallyData> {
   return data;
 }
 
+async function fetchAndKeep(myId: string): Promise<TallyData> {
+  try {
+    const data = await fetchTally(myId);
+    saveCache(myId, data);
+    return data;
+  } catch (e) {
+    if (isNetworkError(e)) setOnline(false);
+    throw e;
+  }
+}
+
+/**
+ * Everything the app shows: the database's copy (or, with no signal, the copy kept on the phone),
+ * plus expenses and payments saved on this phone that are still waiting to sync.
+ */
 export function useTallyData() {
   const myId = useMyId();
   const query = useQuery({
     queryKey: [...TALLY_KEY, myId],
-    queryFn: () => fetchTally(myId),
+    queryFn: () => fetchAndKeep(myId),
     enabled: !!myId,
+    // Open with the phone's copy straight away; it's refreshed from the database as usual.
+    initialData: () => (myId ? loadCache<TallyData>(myId)?.data : undefined),
+    initialDataUpdatedAt: () => (myId ? loadCache<TallyData>(myId)?.savedAt : undefined),
   });
-  return { ...query, data: query.data ?? EMPTY };
+  const waiting = useOutbox(myId);
+  const data = useMemo(() => withOutbox(query.data ?? EMPTY, waiting, myId), [query.data, waiting, myId]);
+  return { ...query, data };
+}
+
+/** Add what's waiting to sync to the database's copy, with balances moved as if it had synced. */
+function withOutbox(base: TallyData, waiting: OutboxEntry[], myId: string): TallyData {
+  if (waiting.length === 0) return base;
+  const ids = new Set([...base.expenses.map((e) => e.id), ...base.settlements.map((s) => s.id), ...base.pendingPayments.map((s) => s.id)]);
+  const todo = waiting.filter((w) => !ids.has(w.id) && base.groups.some((g) => g.id === w.groupId));
+  if (todo.length === 0) return base;
+
+  const data: TallyData = {
+    ...base,
+    expenses: [...base.expenses],
+    settlements: [...base.settlements],
+    pendingPayments: [...base.pendingPayments],
+    ledgers: { ...base.ledgers },
+  };
+  // A copy of a group's ledger to change, made once per group.
+  const touched = new Set<string>();
+  const ledgerOf = (groupId: string) => {
+    if (!touched.has(groupId)) {
+      touched.add(groupId);
+      const l = base.ledgers[groupId] ?? { myBalance: 0, myShare: 0, totalSpent: null, balances: new Map(), transfers: [] };
+      data.ledgers[groupId] = { ...l, balances: new Map(l.balances) };
+    }
+    return data.ledgers[groupId]!;
+  };
+  const move = (groupId: string, userId: string, delta: Cents) => {
+    const l = ledgerOf(groupId);
+    if (userId === myId) l.myBalance += delta;
+    if (l.balances.has(userId)) l.balances.set(userId, l.balances.get(userId)! + delta);
+  };
+
+  for (const w of todo) {
+    const a = w.args as Record<string, never>;
+    const sync: SyncState = w.error ? 'failed' : 'waiting';
+    if (w.kind === 'expense') {
+      const splits = (a.p_splits as { user_id: string; amount_cents: number; weight?: number | null }[]).map((x) => ({
+        userId: x.user_id,
+        amount: x.amount_cents,
+        weight: x.weight ?? null,
+      }));
+      const original = a.p_original as {
+        currency: string;
+        amount: number;
+        rate: number;
+        rate_date?: string | null;
+        source: ExpenseOriginal['source'];
+      } | null;
+      data.expenses.push({
+        id: w.id,
+        groupId: w.groupId,
+        description: a.p_description,
+        amount: a.p_amount_cents,
+        payerId: a.p_payer_id,
+        createdById: myId,
+        method: a.p_split_method,
+        splits,
+        items: Array.isArray(a.p_items) ? (a.p_items as RpcItem[]).map(fromRpcItem) : null,
+        receiptPath: null,
+        original: original
+          ? {
+              currency: original.currency,
+              amount: original.amount,
+              rate: original.rate,
+              rateDate: original.rate_date ?? null,
+              source: original.source,
+            }
+          : null,
+        category: isCategoryId(a.p_category) ? a.p_category : null,
+        occurredAt: a.p_occurred_at ?? w.createdAt,
+        createdAt: w.createdAt,
+        updatedAt: w.createdAt,
+        sync,
+        syncError: w.error,
+      });
+      // A failed one doesn't count: it isn't going to sync as it is.
+      if (sync === 'failed') continue;
+      move(w.groupId, a.p_payer_id, a.p_amount_cents);
+      for (const sp of splits) move(w.groupId, sp.userId, -sp.amount);
+      const l = ledgerOf(w.groupId);
+      l.myShare += splits.find((sp) => sp.userId === myId)?.amount ?? 0;
+      if (l.totalSpent !== null) l.totalSpent += a.p_amount_cents;
+    } else {
+      const to = a.p_to_user_id as string;
+      const from = a.p_from_user_id as string;
+      // The database's rule: it counts straight away when the receiver records it, or the receiver is a guest.
+      const counts = to === myId || !!data.people[to]?.isGuest;
+      const payment: Settlement = {
+        id: w.id,
+        groupId: w.groupId,
+        fromUserId: from,
+        toUserId: to,
+        amount: a.p_amount_cents,
+        occurredAt: a.p_occurred_at ?? w.createdAt,
+        createdById: myId,
+        createdAt: w.createdAt,
+        note: a.p_note ?? null,
+        replacesId: null,
+        status: counts ? 'recorded' : 'pending',
+        sync,
+        syncError: w.error,
+      };
+      (counts ? data.settlements : data.pendingPayments).push(payment);
+      if (counts && sync === 'waiting') {
+        move(w.groupId, from, a.p_amount_cents);
+        move(w.groupId, to, -a.p_amount_cents);
+      }
+    }
+  }
+  // Owners and co-owners see every balance, so "who pays whom" can be worked out again here.
+  for (const groupId of touched) {
+    const l = data.ledgers[groupId]!;
+    const group = data.groups.find((g) => g.id === groupId);
+    if (group && seesEverything(group.myRole) && l.balances.size > 0) l.transfers = simplifyDebts(l.balances);
+  }
+  return data;
 }
 
 /**
@@ -464,7 +662,11 @@ export function netByCurrency(summaries: GroupSummary[]): { currency: string; am
 function useInvalidating<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: fn,
+    // No connection: say so plainly instead of "TypeError: Network request failed".
+    mutationFn: (args: TArgs) =>
+      fn(args).catch((e: unknown) => {
+        throw explainOffline(e);
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: TALLY_KEY }),
   });
 }
@@ -532,27 +734,68 @@ export interface ExpenseInput {
 const toRpcOriginal = (o: ExpenseOriginal | null | undefined) =>
   o ? { currency: o.currency, amount: o.amount, rate: o.rate, rate_date: o.rateDate, source: o.source } : null;
 
+/** The database call for a new expense, with the id made on this phone. */
+function createExpenseArgs(input: ExpenseInput & { groupId: string }, id: string) {
+  return {
+    p_id: id,
+    p_group_id: input.groupId,
+    p_description: input.description,
+    p_amount_cents: input.amount,
+    p_payer_id: input.payerId,
+    p_split_method: input.split.method,
+    p_occurred_at: input.occurredAt,
+    p_splits: toRpcSplits(input.amount, input.split, input.original),
+    p_items: toRpcItems(input.split),
+    p_original: toRpcOriginal(input.original) as unknown as Json,
+    p_category: input.category ?? undefined,
+  };
+}
+
+/**
+ * A new expense. With no connection it's kept on the phone ("Waiting to sync") and sent once the
+ * signal is back; either way it's saved, and the id is returned.
+ */
 export function useCreateExpense() {
   return useInvalidating(async (input: ExpenseInput & { groupId: string }) => {
-    const { data, error } = await supabase.rpc('create_expense', {
-      p_group_id: input.groupId,
-      p_description: input.description,
-      p_amount_cents: input.amount,
-      p_payer_id: input.payerId,
-      p_split_method: input.split.method,
-      p_occurred_at: input.occurredAt,
-      p_splits: toRpcSplits(input.amount, input.split, input.original),
-      p_items: toRpcItems(input.split),
-      p_original: toRpcOriginal(input.original) as unknown as Json,
-      p_category: input.category ?? undefined,
-    });
-    if (error) throw error;
-    return data;
+    const id = newId();
+    const args = createExpenseArgs(input, id);
+    const keep = () => {
+      addToOutbox({
+        kind: 'expense',
+        rpc: 'create_expense',
+        id,
+        userId: myIdNow(),
+        groupId: input.groupId,
+        createdAt: new Date().toISOString(),
+        args,
+      });
+      return id;
+    };
+    if (!isOnline()) return keep();
+    try {
+      let { data, error } = await withTimeout(supabase.rpc('create_expense', args));
+      // A database from before offline saving doesn't take the id yet: save it the old way.
+      if (error?.code === 'PGRST202') {
+        const { p_id: _id, ...older } = args;
+        ({ data, error } = await withTimeout(supabase.rpc('create_expense', older)));
+      }
+      if (error) throw error;
+      return data as string;
+    } catch (e) {
+      if (isNetworkError(e)) return keep();
+      throw e;
+    }
   });
 }
 
 export function useUpdateExpense() {
   return useInvalidating(async (input: ExpenseInput & { expenseId: string }) => {
+    // Still waiting to sync: just change the phone's copy.
+    const waiting = outboxEntry(input.expenseId);
+    if (waiting?.kind === 'expense') {
+      replaceInOutbox(input.expenseId, createExpenseArgs({ ...input, groupId: waiting.groupId }, input.expenseId));
+      return;
+    }
     const { error } = await supabase.rpc('update_expense', {
       p_expense_id: input.expenseId,
       p_description: input.description,
@@ -593,6 +836,11 @@ export function useExchangeRate(from: string | undefined, to: string | undefined
 /** Soft delete: the expense is hidden and its last state is kept in expense_revisions. */
 export function useDeleteExpense() {
   return useInvalidating(async (expenseId: string) => {
+    // Still waiting to sync: it only exists on this phone.
+    if (outboxEntry(expenseId)) {
+      removeFromOutbox(expenseId);
+      return;
+    }
     const { data: row } = await supabase.from('expenses').select('receipt_path').eq('id', expenseId).maybeSingle();
     const { error } = await supabase.rpc('delete_expense', { p_expense_id: expenseId });
     if (error) throw error;
@@ -649,17 +897,46 @@ export function useExpenseHistory(expenseId: string) {
 export function useRecordSettlement() {
   return useInvalidating(
     async (input: { groupId: string; fromUserId: string; toUserId: string; amount: Cents; note?: string; expenseId?: string }) => {
-    const { data, error } = await callRpc('record_settlement', {
-      p_group_id: input.groupId,
-      p_from_user_id: input.fromUserId,
-      p_to_user_id: input.toUserId,
-      p_amount_cents: input.amount,
-      p_note: input.note?.trim() || undefined,
-      // Only sent when settling one period of a recurring expense.
-      ...(input.expenseId ? { p_expense_id: input.expenseId } : {}),
-    });
-    if (error) throw error;
-    return data as string;
+      const id = newId();
+      const args = {
+        p_id: id,
+        p_group_id: input.groupId,
+        p_from_user_id: input.fromUserId,
+        p_to_user_id: input.toUserId,
+        p_amount_cents: input.amount,
+        // The time it was recorded, even if it syncs later.
+        p_occurred_at: new Date().toISOString(),
+        p_note: input.note?.trim() || undefined,
+        // Only sent when settling one period of a recurring expense.
+        ...(input.expenseId ? { p_expense_id: input.expenseId } : {}),
+      };
+      const keep = () => {
+        addToOutbox({
+          kind: 'payment',
+          rpc: 'record_settlement',
+          id,
+          userId: myIdNow(),
+          groupId: input.groupId,
+          createdAt: args.p_occurred_at,
+          args,
+        });
+        return id;
+      };
+      // Settling a recurring period needs the database (it checks that period); everything else can wait.
+      if (!isOnline() && !input.expenseId) return keep();
+      try {
+        let { data, error } = await withTimeout(supabase.rpc('record_settlement', args));
+        // A database from before offline saving doesn't take the id yet: save it the old way.
+        if (error?.code === 'PGRST202') {
+          const { p_id: _id, ...older } = args;
+          ({ data, error } = await withTimeout(supabase.rpc('record_settlement', older)));
+        }
+        if (error) throw error;
+        return data as string;
+      } catch (e) {
+        if (isNetworkError(e) && !input.expenseId) return keep();
+        throw e;
+      }
     },
   );
 }
@@ -1220,7 +1497,10 @@ export function useRecurringHistory(recurringId: string) {
   const ids = useQuery({
     queryKey: [...TALLY_KEY, 'recurring-history', recurringId],
     queryFn: async (): Promise<string[]> => {
-      const { data: rows, error } = await supabase.from('expenses').select('id').eq('recurring_id' as never, recurringId as never);
+      const { data: rows, error } = await supabase
+        .from('expenses')
+        .select('id')
+        .eq('recurring_id' as never, recurringId as never);
       if (error) throw error;
       return (rows ?? []).map((r) => r.id);
     },
@@ -1247,17 +1527,25 @@ export function useRecurringDue() {
     queryFn: async (): Promise<RecurringDue[]> => {
       const { data, error } = await callRpc('recurring_due', {});
       if (error) throw error;
-      return ((data ?? []) as { id: string; group_id: string; description: string; payer_id: string; split_input: unknown; frequency: string; due_date: string }[]).map(
-        (r) => ({
-          id: r.id,
-          groupId: r.group_id,
-          description: r.description,
-          payerId: r.payer_id,
-          split: r.split_input as SplitInput,
-          frequency: r.frequency as Frequency,
-          dueDate: r.due_date,
-        }),
-      );
+      return (
+        (data ?? []) as {
+          id: string;
+          group_id: string;
+          description: string;
+          payer_id: string;
+          split_input: unknown;
+          frequency: string;
+          due_date: string;
+        }[]
+      ).map((r) => ({
+        id: r.id,
+        groupId: r.group_id,
+        description: r.description,
+        payerId: r.payer_id,
+        split: r.split_input as SplitInput,
+        frequency: r.frequency as Frequency,
+        dueDate: r.due_date,
+      }));
     },
     enabled: !!myId,
   });
@@ -1362,7 +1650,6 @@ export async function completeRecurringDue(recurringId: string, expenseId: strin
   if (error) throw error;
 }
 
-
 /** A payment for one period of a recurring expense (only ones you're allowed to see). */
 export interface PeriodPayment {
   expenseId: string;
@@ -1385,15 +1672,15 @@ export function usePeriodPayments(expenseIds: string[]) {
         .in('expense_id' as never, expenseIds as never)
         .in('status', ['recorded', 'pending']);
       if (error) throw error;
-      return ((data ?? []) as unknown as { expense_id: string; from_user_id: string; to_user_id: string; amount_cents: number; status: string }[]).map(
-        (p) => ({
-          expenseId: p.expense_id,
-          fromUserId: p.from_user_id,
-          toUserId: p.to_user_id,
-          amount: p.amount_cents,
-          status: p.status === 'pending' ? 'pending' : 'recorded',
-        }),
-      );
+      return (
+        (data ?? []) as unknown as { expense_id: string; from_user_id: string; to_user_id: string; amount_cents: number; status: string }[]
+      ).map((p) => ({
+        expenseId: p.expense_id,
+        fromUserId: p.from_user_id,
+        toUserId: p.to_user_id,
+        amount: p.amount_cents,
+        status: p.status === 'pending' ? 'pending' : 'recorded',
+      }));
     },
   });
   return query.data ?? [];

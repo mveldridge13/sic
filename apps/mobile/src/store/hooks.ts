@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { useMyId } from '@/lib/auth';
-import { summarizeGroup, useTallyData, type GroupSummary } from '@/lib/data';
+import { summarizeGroup, useTallyData, type GroupSummary, type SyncState } from '@/lib/data';
 
 export function useGroupSummaries(): GroupSummary[] {
   const myId = useMyId();
@@ -32,6 +32,8 @@ export type ActivityItem =
       actorId: string;
       myEffect: number;
       involved: boolean;
+      /** Saved on this phone with no signal and not synced yet. */
+      sync?: SyncState;
     }
   | {
       kind: 'settlement';
@@ -45,6 +47,7 @@ export type ActivityItem =
       involved: boolean;
       /** Waiting for the receiver to confirm; doesn't count towards balances yet. */
       pending?: boolean;
+      sync?: SyncState;
     };
 
 export function useActivity(groupId?: string): ActivityItem[] {
@@ -65,6 +68,7 @@ export function useActivity(groupId?: string): ActivityItem[] {
           actorId: e.payerId,
           myEffect: paid - myShare,
           involved: paid > 0 || myShare > 0,
+          sync: e.sync,
         };
       }),
       ...data.settlements.map((s) => ({
@@ -77,6 +81,7 @@ export function useActivity(groupId?: string): ActivityItem[] {
         amount: s.amount,
         myEffect: s.fromUserId === myId ? s.amount : s.toUserId === myId ? -s.amount : 0,
         involved: s.fromUserId === myId || s.toUserId === myId,
+        sync: s.sync,
       })),
       ...data.pendingPayments.map((s) => ({
         kind: 'settlement' as const,
@@ -89,6 +94,7 @@ export function useActivity(groupId?: string): ActivityItem[] {
         myEffect: 0,
         involved: s.fromUserId === myId || s.toUserId === myId,
         pending: true,
+        sync: s.sync,
       })),
     ];
     return items.filter((i) => !groupId || i.groupId === groupId).sort((a, b) => (a.at < b.at ? 1 : -1));

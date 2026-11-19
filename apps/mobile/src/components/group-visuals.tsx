@@ -170,6 +170,9 @@ export function Bubble({
     line = item.pending ? `Waiting for ${to === 'you' ? 'you' : to} to confirm` : 'Settled up';
     right = { big: money(item.amount) };
   }
+  // Saved on this phone with no signal: say so instead (the rest of the line can wait).
+  if (item.sync === 'waiting') line = '⏳ Waiting to sync';
+  if (item.sync === 'failed') line = '⚠️ Couldn’t sync · tap to fix';
   if (showGroup && group) line = `${line} · ${group.icon ? `${group.icon} ` : ''}${group.name}`;
   if (figure) right = figure;
 
@@ -192,9 +195,10 @@ export function Bubble({
           borderBottomRightRadius: mine ? 6 : 20,
           backgroundColor: item.kind === 'settlement' ? (item.pending ? c.surface : c.warm) : mine ? c.surfaceAlt : c.surface,
           // A payment waiting for confirmation is drawn dashed: it doesn't count yet.
-          borderWidth: (item.kind === 'expense' && !mine) || (item.kind === 'settlement' && item.pending) ? 1 : 0,
-          borderStyle: item.kind === 'settlement' && item.pending ? 'dashed' : 'solid',
-          borderColor: c.border,
+          // Waiting to sync is dashed too (not on the database yet); couldn't sync is outlined in red.
+          borderWidth: (item.kind === 'expense' && !mine) || (item.kind === 'settlement' && item.pending) || item.sync ? 1 : 0,
+          borderStyle: (item.kind === 'settlement' && item.pending) || item.sync === 'waiting' ? 'dashed' : 'solid',
+          borderColor: item.sync === 'failed' ? c.danger : item.sync === 'waiting' ? c.focus : c.border,
         }}>
         <Text style={{ fontSize: 26 }}>{emoji}</Text>
         <View style={{ flex: 1, gap: 1 }}>

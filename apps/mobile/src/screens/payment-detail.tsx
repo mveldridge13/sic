@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Alert, View } from 'react-native';
 
 import { CardText, Gutter, HeroScreen, QuickAction, SectionTitle, StatRow, TotalPill, useCardInk } from '@/components/dashboard';
+import { SyncNotice } from '@/components/sync-notice';
 import { Avatar, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
 import { useNameOf, useRemindToConfirm, useReplacedPayment, useTallyData, useVoidSettlement } from '@/lib/data';
@@ -132,7 +133,10 @@ export function PaymentDetail({ id, embedded = false, onGone }: { id: string; em
       eyebrow={`${group.name} · Payment`}
       title={money}
       actions={
-        pending ? (
+        // Saved on this phone and not synced: only the group link (the notice below has Delete).
+        payment.sync ? (
+          <QuickAction bold icon="groups" label="Group" onPress={() => router.push(`/group/${group.id}`)} />
+        ) : pending ? (
           <>
             {mineToChase ? <QuickAction bold icon="notifications" label={`Remind ${to}`} onPress={sendReminder} /> : null}
             <QuickAction bold icon="groups" label="Group" onPress={() => router.push(`/group/${group.id}`)} />
@@ -153,7 +157,12 @@ export function PaymentDetail({ id, embedded = false, onGone }: { id: string; em
       }
       cardTone="light"
       card={card}>
-      {pending ? (
+      {payment.sync ? (
+        <Gutter>
+          <SyncNotice id={payment.id} sync={payment.sync} error={payment.syncError} kind="payment" />
+        </Gutter>
+      ) : null}
+      {pending && payment.sync !== 'failed' ? (
         <Gutter>
           <Notice tone="info">
             Waiting for {to} to confirm it arrived. It doesn’t count towards anyone’s balance until then.

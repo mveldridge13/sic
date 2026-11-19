@@ -6,7 +6,10 @@ import { useEffect } from 'react';
 import { AppState, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
+import { OfflineBar } from '@/components/offline-bar';
 import { useAuth } from '@/lib/auth';
+import { TALLY_KEY } from '@/lib/data';
+import { flushOutbox, forgetCache, setRefresher, whenReconnected } from '@/lib/offline';
 import { brand, useColors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -15,6 +18,15 @@ SplashScreen.setOptions({ fade: true, duration: 350 });
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+});
+
+// Back online: send what was saved with no signal, then bring everything up to date.
+setRefresher(() => queryClient.invalidateQueries({ queryKey: TALLY_KEY }));
+whenReconnected(() => {
+  void flushOutbox().then((sent) => {
+    // flushOutbox already refreshed when it sent something.
+    if (!sent) void queryClient.invalidateQueries({ queryKey: TALLY_KEY });
+  });
 });
 
 // Refetch when the app comes back to the foreground.
@@ -31,10 +43,17 @@ export default function RootLayout() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
+  const userId = session?.user.id;
   useEffect(() => {
-    // Drop cached data from a previous account on sign-out.
-    if (!signedIn) queryClient.clear();
-  }, [signedIn]);
+    // Drop cached data from a previous account on sign-out, including the copy kept on the phone.
+    if (!userId) return;
+    // Signed in: send anything saved with no signal last time.
+    void flushOutbox();
+    return () => {
+      queryClient.clear();
+      if (!useAuth.getState().session) forgetCache(userId);
+    };
+  }, [userId]);
 
   if (!ready) return null;
 
@@ -107,6 +126,8 @@ export default function RootLayout() {
               <Stack.Screen name="sign-up" options={{ headerShown: false }} />
             </Stack.Protected>
           </Stack>
+          {/* Offline, syncing, or something that couldn't sync: a small pill over every screen. */}
+          {signedIn ? <OfflineBar /> : null}
         </ThemeProvider>
       </QueryClientProvider>
     </KeyboardProvider>

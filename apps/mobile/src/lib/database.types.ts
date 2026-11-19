@@ -996,6 +996,7 @@ export type Database = {
           p_category?: string;
           p_description: string;
           p_group_id: string;
+          p_id?: string;
           p_items?: Json;
           p_notes?: string;
           p_occurred_at?: string;
@@ -1139,6 +1140,7 @@ export type Database = {
           p_expense_id?: string;
           p_from_user_id: string;
           p_group_id: string;
+          p_id?: string;
           p_note?: string;
           p_occurred_at?: string;
           p_to_user_id: string;

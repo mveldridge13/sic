@@ -7,6 +7,7 @@ import { Alert, Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CardFigure, Gutter, HeroScreen, QuickAction, SectionTitle, StatRow, TotalPill } from '@/components/dashboard';
+import { SyncNotice } from '@/components/sync-notice';
 import { Avatar, Button, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
 import { seesEverything, useDeleteExpense, useExpenseHistory, useNameOf, useRemoveReceipt, useTallyData } from '@/lib/data';
@@ -148,6 +149,11 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
       }
       cardTone="light"
       card={card}>
+      {expense.sync ? (
+        <Gutter>
+          <SyncNotice id={expense.id} sync={expense.sync} error={expense.syncError} kind="expense" />
+        </Gutter>
+      ) : null}
       {deleteExpense.isError ? (
         <Gutter>
           <Notice>{deleteExpense.error.message}</Notice>

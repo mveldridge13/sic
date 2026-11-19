@@ -49,6 +49,7 @@ import {
   type RecurringExpense,
   type SavedSplit,
 } from '@/lib/data';
+import { isOnline, useOnline } from '@/lib/offline';
 import { formFromSaved, savedFromForm } from '@/lib/saved-splits';
 import { canPayIn, PAY_CURRENCIES } from '@/lib/currencies';
 import { CATEGORIES, categoryById, guessCategory, type CategoryId } from '@/lib/categories';
@@ -584,6 +585,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     }
   }, [amountText, cur]);
   const fx = useExchangeRate(foreign ? cur : undefined, group?.currency);
+  const online = useOnline();
   // The rate to use, or why there isn't one yet, and the amount in the group's currency: what
   // everyone's shares and balances use.
   const { rateInfo, rateProblem, amount } = useMemo((): {
@@ -614,8 +616,9 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     }
     if (lockedRate) return at(lockedRate);
     if (fx.data) return at({ rate: fx.data.rate, rateDate: fx.data.date, source: 'ecb' });
+    if (!online) return none('You’re offline, so there’s no rate to fetch. Tap the rate to type it, or what your bank charged.');
     return none(fx.isError ? 'Couldn’t get today’s exchange rate. Tap the rate to type it.' : 'Getting today’s exchange rate…');
-  }, [foreign, group, paidAmount, cur, rateMode, rateText, bankText, lockedRate, fx.data, fx.isError]);
+  }, [foreign, group, paidAmount, cur, rateMode, rateText, bankText, lockedRate, fx.data, fx.isError, online]);
   // Amounts and item prices are typed in what was paid; the split is worked out on that.
   const splitTotal = foreign ? paidAmount : amount;
 
@@ -785,6 +788,11 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       headsUpDays: recurring.headsUpDays,
       category,
     };
+    // Repeating expenses are set up on the database, so they need a connection. One-off expenses don't.
+    if (!isOnline() && (schedule || dueBill || recurring.on)) {
+      setSaveError('You’re offline. Repeating expenses need a connection. Turn off Repeat to save this one now, or try again when you’re back online.');
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     void (async () => {
