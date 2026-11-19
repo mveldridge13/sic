@@ -100,6 +100,7 @@ export type Database = {
       expenses: {
         Row: {
           amount_cents: number;
+          category: string | null;
           created_at: string;
           created_by: string;
           deleted_at: string | null;
@@ -123,6 +124,7 @@ export type Database = {
         ComputedFields: never;
         Insert: {
           amount_cents: number;
+          category?: string | null;
           created_at?: string;
           created_by: string;
           deleted_at?: string | null;
@@ -145,6 +147,7 @@ export type Database = {
         };
         Update: {
           amount_cents?: number;
+          category?: string | null;
           created_at?: string;
           created_by?: string;
           deleted_at?: string | null;
@@ -629,6 +632,7 @@ export type Database = {
       recurring_expenses: {
         Row: {
           amount_cents: number | null;
+          category: string | null;
           created_at: string;
           created_by: string;
           description: string;
@@ -658,6 +662,7 @@ export type Database = {
         ComputedFields: 'recurring_audience';
         Insert: {
           amount_cents?: number | null;
+          category?: string | null;
           created_at?: string;
           created_by: string;
           description: string;
@@ -685,6 +690,7 @@ export type Database = {
         };
         Update: {
           amount_cents?: number | null;
+          category?: string | null;
           created_at?: string;
           created_by?: string;
           description?: string;
@@ -924,6 +930,7 @@ export type Database = {
       create_expense: {
         Args: {
           p_amount_cents: number;
+          p_category?: string;
           p_description: string;
           p_group_id: string;
           p_items?: Json;
@@ -1113,6 +1120,7 @@ export type Database = {
       set_group_icon: { Args: { p_group_id: string; p_icon: string }; Returns: undefined };
       set_my_time_zone: { Args: { p_time_zone: string }; Returns: undefined };
       set_payid: { Args: { p_account_name?: string; p_type: string; p_value: string }; Returns: undefined };
+      set_recurring_category: { Args: { p_category: string; p_id: string }; Returns: undefined };
       set_recurring_paused: { Args: { p_id: string; p_paused: boolean }; Returns: undefined };
       shares_group_with: { Args: { p_user_id: string }; Returns: boolean };
       simplified_transfers: {
@@ -1138,6 +1146,7 @@ export type Database = {
       update_expense: {
         Args: {
           p_amount_cents: number;
+          p_category?: string;
           p_description: string;
           p_expense_id: string;
           p_items?: Json;

@@ -3,6 +3,7 @@
  * buzz on important taps, totals that count up, confetti, the 💸 moving between two people, and
  * slide-to-settle. Everything respects the phone's "reduce motion" setting.
  */
+import { categoryById, guessCategory } from '@/lib/categories';
 import { formatMoney } from '@tally/shared';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
@@ -343,5 +344,7 @@ export function expenseEmoji(title: string): string {
     [/party|celebrat/, '🎉'],
     [/ice ?cream|dessert|cake/, '🍰'],
   ];
-  return rules.find(([re]) => re.test(t))?.[1] ?? '🧾';
+  // Nothing specific: the emoji of the category the description suggests, or a receipt.
+  const category = guessCategory(title);
+  return rules.find(([re]) => re.test(t))?.[1] ?? (category === 'other' ? '🧾' : categoryById(category).emoji);
 }

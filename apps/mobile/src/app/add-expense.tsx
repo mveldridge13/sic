@@ -51,6 +51,7 @@ import {
 } from '@/lib/data';
 import { formFromSaved, savedFromForm } from '@/lib/saved-splits';
 import { canPayIn, PAY_CURRENCIES } from '@/lib/currencies';
+import { CATEGORIES, categoryById, guessCategory, type CategoryId } from '@/lib/categories';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
 import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
@@ -386,6 +387,9 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
   // The currency it was paid in: null = the group's own. Another currency is converted into the
   // group's at a rate that's locked when the expense is saved.
   const [paidIn, setPaidIn] = useState<string | null>(editing?.original?.currency ?? null);
+  // The category someone picked (or a scanned receipt suggested); otherwise it's guessed from the
+  // description as it's typed. An old expense without one shows the guess, saved if it's edited.
+  const [pickedCategory, setPickedCategory] = useState<CategoryId | null>(editing?.category ?? schedule?.category ?? null);
   // An expense being edited keeps its rate unless the currency changes or someone types a new one.
   const [lockedRate, setLockedRate] = useState<Pick<ExpenseOriginal, 'rate' | 'rateDate' | 'source'> | null>(
     editing?.original && editing.original.source === 'ecb' ? editing.original : null,
@@ -482,10 +486,12 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setSeenNewGroup(params.newGroupId);
     pickGroup(params.newGroupId);
   }
-  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | 'consent' | 'currency' | 'rate' | null>(null);
+  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | 'consent' | 'currency' | 'rate' | 'category' | null>(
+    null,
+  );
   // Close the keyboard (and wait until it's gone) before a sheet slides up. Otherwise the keyboard
   // closing tugs the sheet back down mid-slide, which shows as a flicker.
-  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan' | 'consent' | 'currency' | 'rate') => {
+  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan' | 'consent' | 'currency' | 'rate' | 'category') => {
     if (KeyboardController.isVisible()) await KeyboardController.dismiss();
     setSheet(name);
   };
@@ -505,6 +511,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       setReceiptPath(path);
       const read = await scanReceipt(path);
       if (read.merchant && !description.trim()) setDescription(read.merchant);
+      if (read.category && !pickedCategory) setPickedCategory(read.category);
       // A receipt in another currency we have rates for is entered in that currency and converted.
       const convert = !!read.currency && read.currency !== group.currency && canPayIn(read.currency);
       const receiptCurrency = convert ? read.currency! : group.currency;
@@ -699,6 +706,10 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       ? { items: itemsSubtotal(splitInput.items), extra: Number.isFinite(splitTotal) ? splitTotal - itemsSubtotal(splitInput.items) : 0 }
       : null;
 
+  const suggestedCategory = guessCategory(description);
+  const category: CategoryId = pickedCategory ?? suggestedCategory;
+  const categoryInfo = categoryById(category);
+
   const title = isEdit ? 'Edit expense' : schedule ? 'Edit recurring' : 'New expense';
   if (isEdit && !editing) {
     return (
@@ -755,6 +766,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       split: splitInput,
       occurredAt: editing?.occurredAt ?? new Date().toISOString(),
       original: foreign && rateInfo ? { currency: cur, amount: paidAmount, ...rateInfo } : null,
+      category,
     };
     if (editing) {
       updateExpense.mutate({ ...input, expenseId: editing.id }, { onSuccess: () => router.back() });
@@ -770,6 +782,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       endDate: recurring.ends === 'date' ? recurring.endDate : null,
       remaining: recurring.ends === 'times' ? recurring.times : null,
       headsUpDays: recurring.headsUpDays,
+      category,
     };
     setSaving(true);
     setSaveError(null);
@@ -1048,6 +1061,36 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
             {splitProblem}. Tap above to fix it.
           </Text>
         ) : null}
+        {/* What it was, for spending by category. Guessed from the description until someone picks one. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Category: ${categoryInfo.name}${pickedCategory ? '' : ', suggested'}. Change`}
+          onPress={() => void openSheet('category')}
+          android_ripple={{ color: c.surfaceAlt }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: space.md,
+            padding: space.lg,
+            borderRadius: radius.lg,
+            backgroundColor: c.surfaceAlt,
+            overflow: 'hidden',
+          }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 22 }}>{categoryInfo.emoji}</Text>
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="heading">Category</Text>
+            <Text variant="caption" muted numberOfLines={1}>
+              {categoryInfo.name}
+              {pickedCategory ? '' : ' · suggested'}
+            </Text>
+          </View>
+          <Text muted style={{ fontSize: 22 }}>
+            ›
+          </Text>
+        </Pressable>
+
         {!isEdit && !dueBill ? <RecurringLine form={recurring} onPress={() => void openSheet('recurring')} /> : null}
         {dueBill ? (
           <Notice tone="info">From your recurring “{dueBill.description}”. Enter this time’s amount; it’s split the same way.</Notice>
@@ -1417,6 +1460,50 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       </Sheet>
 
       {/* Which group (only when starting from Home with more than one group) */}
+      {/* Category: ten tiles, two to a row */}
+      <Sheet visible={sheet === 'category'} onClose={() => setSheet(null)} title="Category">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+          {CATEGORIES.map((cat) => {
+            const selected = cat.id === category;
+            const isSuggestion = !pickedCategory && cat.id === suggestedCategory;
+            return (
+              <Pressable
+                key={cat.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${cat.name}${isSuggestion ? ', suggested' : ''}`}
+                onPress={() => {
+                  setPickedCategory(cat.id);
+                  buzz.tap();
+                  setSheet(null);
+                }}
+                style={({ pressed }) => ({
+                  width: '48.5%',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingVertical: space.md,
+                  paddingHorizontal: space.sm,
+                  borderRadius: radius.lg,
+                  borderWidth: selected ? 2 : 1,
+                  borderColor: selected ? c.focus : c.border,
+                  backgroundColor: selected ? c.surfaceAlt : c.surface,
+                  opacity: pressed ? 0.8 : 1,
+                })}>
+                <Text style={{ fontSize: 28 }}>{cat.emoji}</Text>
+                <Text variant="label" numberOfLines={1}>
+                  {cat.name}
+                </Text>
+                {isSuggestion ? (
+                  <Text variant="caption" muted>
+                    suggested
+                  </Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Sheet>
+
       {/* Which currency it was paid in */}
       <Sheet visible={sheet === 'currency'} onClose={() => setSheet(null)} title="Paid in">
         {group ? (

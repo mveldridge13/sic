@@ -1,3 +1,4 @@
+import { categoryById, categoryOf } from '@/lib/categories';
 import { centsToDecimalString, formatMoney, inferConvertedItemsRest, inferItemsRest, itemsSubtotal } from '@tally/shared';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -113,7 +114,7 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
       <CardFigure
         label="Amount"
         value={money(expense.amount)}
-        note={`Paid by ${name(expense.payerId)} · ${formatDateTime(expense.occurredAt)}${rateLine ? `\n${rateLine}` : ''}`}
+        note={`${categoryById(categoryOf(expense)).emoji} ${categoryById(categoryOf(expense)).name} · Paid by ${name(expense.payerId)} · ${formatDateTime(expense.occurredAt)}${rateLine ? `\n${rateLine}` : ''}`}
       />
       <StatRow>
         <TotalPill label="Your share" cents={myShare} currency={group.currency} tone="neutral" />
@@ -303,7 +304,10 @@ function ReceiptPhoto({ expenseId, path, canRemove }: { expenseId: string; path:
       <SectionTitle title="Receipt" />
       <Gutter>
         {url.data ? (
-          <Pressable accessibilityRole="imagebutton" accessibilityLabel="Receipt photo. Tap to view full screen" onPress={() => setOpen(true)}>
+          <Pressable
+            accessibilityRole="imagebutton"
+            accessibilityLabel="Receipt photo. Tap to view full screen"
+            onPress={() => setOpen(true)}>
             <Image
               source={{ uri: url.data }}
               contentFit="cover"

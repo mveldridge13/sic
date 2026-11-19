@@ -11,6 +11,7 @@ import { Bubble } from '@/components/group-visuals';
 import { Card, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
 import { useNameOf, useTallyData } from '@/lib/data';
+import { CATEGORIES, categoryById, categoryOf, type CategoryId } from '@/lib/categories';
 import { matchesSearch } from '@/lib/search';
 import { dayLabel } from '@/lib/format';
 import { useWidthClass } from '@/lib/layout';
@@ -85,6 +86,13 @@ export default function ActivityScreen() {
   const [kind, setKind] = useState<Kind>('all');
   const [groupId, setGroupId] = useState<string>('all');
   const [pickingGroup, setPickingGroup] = useState(false);
+  // Only expenses of one category (payments have none, so they're hidden while one is picked).
+  const [categoryFilter, setCategoryFilter] = useState<'all' | CategoryId>('all');
+  const [pickingCategory, setPickingCategory] = useState(false);
+  const expenseCategory = (id: string) => {
+    const e = data.expenses.find((x) => x.id === id);
+    return e ? categoryOf(e) : null;
+  };
   // Search: the 🔍 in the header opens a box; the summary card steps aside while it's open.
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
@@ -124,6 +132,7 @@ export default function ActivityScreen() {
       all.filter(
         (i) =>
           (groupId === 'all' || i.groupId === groupId) &&
+          (categoryFilter === 'all' || (i.kind === 'expense' && expenseCategory(i.id) === categoryFilter)) &&
           (kind === 'all' ||
             (kind === 'expenses' && i.kind === 'expense') ||
             (kind === 'payments' && i.kind === 'settlement') ||
@@ -136,7 +145,7 @@ export default function ActivityScreen() {
       ),
     // name reads data, which is listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [all, kind, groupId, query, data],
+    [all, kind, groupId, query, data, categoryFilter],
   );
 
   // How many of each kind are in the feed (for the chosen group), shown on the card.
@@ -262,30 +271,67 @@ export default function ActivityScreen() {
         </Gutter>
       ) : null}
 
-      {/* One compact group picker instead of a row of chips per group. */}
-      {hasAny && data.groups.length > 1 ? (
+      {/* One compact group picker instead of a row of chips per group, and one for the category. */}
+      {hasAny ? (
         <Gutter>
-          <Bouncy
-            accessibilityRole="button"
-            accessibilityLabel={`Group: ${groupName}. Change`}
-            onPress={() => {
-              buzz.tap();
-              setPickingGroup(true);
-            }}
-            style={{
-              alignSelf: 'flex-start',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: space.sm,
-              paddingVertical: 6,
-              paddingLeft: 6,
-              paddingRight: space.md,
-              borderRadius: radius.pill,
-              backgroundColor: c.surfaceAlt,
-            }}>
-            {pickedGroup ? (
-              <GroupIcon group={pickedGroup} size={30} />
-            ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+            {data.groups.length > 1 ? (
+              <Bouncy
+                accessibilityRole="button"
+                accessibilityLabel={`Group: ${groupName}. Change`}
+                onPress={() => {
+                  buzz.tap();
+                  setPickingGroup(true);
+                }}
+                style={{
+                  alignSelf: 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: space.sm,
+                  paddingVertical: 6,
+                  paddingLeft: 6,
+                  paddingRight: space.md,
+                  borderRadius: radius.pill,
+                  backgroundColor: c.surfaceAlt,
+                }}>
+                {pickedGroup ? (
+                  <GroupIcon group={pickedGroup} size={30} />
+                ) : (
+                  <View
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      backgroundColor: c.surface,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    <Text style={{ fontSize: 15 }}>🌈</Text>
+                  </View>
+                )}
+                <Text variant="label" numberOfLines={1} style={{ maxWidth: 220, fontWeight: '700' }}>
+                  {groupName}
+                </Text>
+                <MaterialIcons name="expand-more" size={20} color={c.textMuted} />
+              </Bouncy>
+            ) : null}
+            <Bouncy
+              accessibilityRole="button"
+              accessibilityLabel={`Category: ${categoryFilter === 'all' ? 'all' : categoryById(categoryFilter).name}. Change`}
+              onPress={() => {
+                buzz.tap();
+                setPickingCategory(true);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: space.sm,
+                paddingVertical: 6,
+                paddingLeft: 6,
+                paddingRight: space.md,
+                borderRadius: radius.pill,
+                backgroundColor: c.surfaceAlt,
+              }}>
               <View
                 style={{
                   width: 30,
@@ -295,14 +341,14 @@ export default function ActivityScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                <Text style={{ fontSize: 15 }}>🌈</Text>
+                <Text style={{ fontSize: 15 }}>{categoryFilter === 'all' ? '🗂️' : categoryById(categoryFilter).emoji}</Text>
               </View>
-            )}
-            <Text variant="label" numberOfLines={1} style={{ maxWidth: 220, fontWeight: '700' }}>
-              {groupName}
-            </Text>
-            <MaterialIcons name="expand-more" size={20} color={c.textMuted} />
-          </Bouncy>
+              <Text variant="label" numberOfLines={1} style={{ maxWidth: 200, fontWeight: '700' }}>
+                {categoryFilter === 'all' ? 'All categories' : categoryById(categoryFilter).name}
+              </Text>
+              <MaterialIcons name="expand-more" size={20} color={c.textMuted} />
+            </Bouncy>
+          </View>
         </Gutter>
       ) : null}
 
@@ -396,6 +442,52 @@ export default function ActivityScreen() {
         onRefresh={pull.onRefresh}>
         {body}
       </HeroScreen>
+
+      <Sheet visible={pickingCategory} onClose={() => setPickingCategory(false)} title="Show expenses for">
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+          {[{ id: 'all' as const, emoji: '🗂️', name: 'All categories' }, ...CATEGORIES].map((cat) => {
+            const selected = cat.id === categoryFilter;
+            const count =
+              cat.id === 'all'
+                ? all.length
+                : all.filter(
+                    (i) => i.kind === 'expense' && (groupId === 'all' || i.groupId === groupId) && expenseCategory(i.id) === cat.id,
+                  ).length;
+            return (
+              <Pressable
+                key={cat.id}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${cat.name}, ${count}`}
+                onPress={() => {
+                  buzz.tap();
+                  setCategoryFilter(cat.id);
+                  setPickingCategory(false);
+                }}
+                style={({ pressed }) => ({
+                  width: '48.5%',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingVertical: space.md,
+                  paddingHorizontal: space.sm,
+                  borderRadius: radius.lg,
+                  borderWidth: selected ? 2 : 1,
+                  borderColor: selected ? c.focus : c.border,
+                  backgroundColor: selected ? c.surfaceAlt : c.surface,
+                  opacity: pressed ? 0.8 : 1,
+                })}>
+                <Text style={{ fontSize: 28 }}>{cat.emoji}</Text>
+                <Text variant="label" numberOfLines={1}>
+                  {cat.name}
+                </Text>
+                <Text variant="caption" muted>
+                  {count}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Sheet>
 
       <Sheet visible={pickingGroup} onClose={() => setPickingGroup(false)} title="Show activity from">
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: space.md }}>

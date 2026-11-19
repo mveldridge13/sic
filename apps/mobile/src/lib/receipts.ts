@@ -5,6 +5,7 @@ import type * as Manipulator from 'expo-image-manipulator';
 import type * as ImagePicker from 'expo-image-picker';
 import { FunctionsHttpError } from '@supabase/supabase-js';
 
+import { isCategoryId, type CategoryId } from './categories';
 import { supabase } from './supabase';
 
 /** What the scan-receipt edge function reads off a photo. Empty strings mean "not on the receipt". */
@@ -14,6 +15,8 @@ export interface ReceiptScan {
   date: string;
   currency: string;
   total: string;
+  /** One of the category ids; missing from an older version of the function. */
+  category?: string;
   items: { name: string; price: string }[];
 }
 
@@ -22,6 +25,7 @@ export interface ReadReceipt {
   merchant: string;
   currency: string | null;
   total: number | null;
+  category: CategoryId | null;
   items: { name: string; amount: number }[];
 }
 
@@ -128,6 +132,7 @@ export async function scanReceipt(path: string): Promise<ReadReceipt> {
     merchant: data.merchant.trim().slice(0, 120),
     currency,
     total: cents(data.total, currency),
+    category: isCategoryId(data.category) && data.category !== 'other' ? data.category : null,
     items,
   };
 }

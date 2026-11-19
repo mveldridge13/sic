@@ -25,6 +25,7 @@ const SYSTEM = `You read photos of receipts and bills for a bill-splitting app. 
 - date: the purchase date as YYYY-MM-DD. Empty if not shown.
 - currency: the ISO 4217 code (e.g. AUD, PHP, USD). Use the currency symbol, the shop's address or the language to decide. Empty if you can't tell.
 - total: the final amount paid, including tax, service charge and tip, as printed (digits and one decimal point, no symbol or thousands separators, e.g. "1250.50"). Empty if not shown.
+- category: what the purchase is, one of: food (restaurants, cafes, bars, takeaway), groceries (supermarkets, markets), accommodation, transport (fuel, taxis, flights, trains, parking), home (rent, furniture, cleaning, repairs), bills (utilities, phone, internet, subscriptions), entertainment (tickets, tours, activities), shopping (clothes, gifts, other goods), health (pharmacy, doctor, hairdresser, gym), other. Use other if unsure.
 - items: each purchased line. name is a short, readable name (expand abbreviations where obvious, at most 60 characters). price is that line's total (quantity × unit price) in the same format as total. If a discount applies to one line, take it off that line's price. Leave out tax, service charge, tip, subtotals, payments, change and receipt-wide discounts: those are not items.`;
 
 const SCHEMA = {
@@ -35,6 +36,10 @@ const SCHEMA = {
     date: { type: 'string' },
     currency: { type: 'string' },
     total: { type: 'string' },
+    category: {
+      type: 'string',
+      enum: ['food', 'groceries', 'accommodation', 'transport', 'home', 'bills', 'entertainment', 'shopping', 'health', 'other'],
+    },
     items: {
       type: 'array',
       items: {
@@ -45,7 +50,7 @@ const SCHEMA = {
       },
     },
   },
-  required: ['is_receipt', 'merchant', 'date', 'currency', 'total', 'items'],
+  required: ['is_receipt', 'merchant', 'date', 'currency', 'total', 'category', 'items'],
   additionalProperties: false,
 } as const;
 

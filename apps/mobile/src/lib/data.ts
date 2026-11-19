@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { useMyId } from './auth';
 import { deviceCurrency, deviceTimeZone } from './currencies';
+import { isCategoryId, type CategoryId } from './categories';
 import type { Json } from './database.types';
 import { supabase } from './supabase';
 
@@ -73,6 +74,8 @@ export interface Expense {
   receiptPath: string | null;
   /** Paid in another currency than the group's: what was paid and the locked rate. `amount` is converted. */
   original: ExpenseOriginal | null;
+  /** Null for expenses saved before categories (the app shows a guess: categoryOf). */
+  category: CategoryId | null;
   occurredAt: string;
   createdAt: string;
   updatedAt: string;
@@ -210,7 +213,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
          group_members ( user_id, role, left_at, profiles ( id, name, is_guest ) ),
          expenses ( id, description, amount_cents, payer_id, created_by, split_method, occurred_at,
                     created_at, updated_at, deleted_at, items, receipt_path,
-                    original_currency, original_amount, exchange_rate, rate_date, rate_source,
+                    original_currency, original_amount, exchange_rate, rate_date, rate_source, category,
                     expense_splits ( user_id, amount_cents, weight ) ),
          settlements ( id, from_user_id, to_user_id, amount_cents, occurred_at, status, created_by, created_at, note, replaces_id )`,
       )
@@ -329,6 +332,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
                 source: e.rate_source as ExpenseOriginal['source'],
               }
             : null,
+        category: isCategoryId(e.category) ? e.category : null,
         occurredAt: e.occurred_at,
         createdAt: e.created_at,
         updatedAt: e.updated_at,
@@ -522,6 +526,7 @@ export interface ExpenseInput {
   occurredAt: string;
   /** Paid in another currency: `amount` is the converted amount and `split` is in the paid currency. */
   original?: ExpenseOriginal | null;
+  category?: CategoryId | null;
 }
 
 const toRpcOriginal = (o: ExpenseOriginal | null | undefined) =>
@@ -539,6 +544,7 @@ export function useCreateExpense() {
       p_splits: toRpcSplits(input.amount, input.split, input.original),
       p_items: toRpcItems(input.split),
       p_original: toRpcOriginal(input.original) as unknown as Json,
+      p_category: input.category ?? undefined,
     });
     if (error) throw error;
     return data;
@@ -557,6 +563,7 @@ export function useUpdateExpense() {
       p_splits: toRpcSplits(input.amount, input.split, input.original),
       p_items: toRpcItems(input.split),
       p_original: toRpcOriginal(input.original) as unknown as Json,
+      p_category: input.category ?? undefined,
     });
     if (error) throw error;
   });
@@ -1075,6 +1082,7 @@ export const HEADS_UP_DAYS = [0, 1, 3, 7] as const;
 
 /** A recurring expense: what it adds, how often, and where it's up to. Kept apart from the expenses it adds. */
 export interface RecurringExpense {
+  category: CategoryId | null;
   id: string;
   groupId: string;
   createdById: string;
@@ -1116,6 +1124,7 @@ type RecurringRow = {
   due_date: string | null;
   paused: boolean;
   created_at: string;
+  category: string | null;
 };
 
 const fromRecurringRow = (r: RecurringRow): RecurringExpense => ({
@@ -1136,10 +1145,11 @@ const fromRecurringRow = (r: RecurringRow): RecurringExpense => ({
   dueDate: r.due_date,
   paused: r.paused,
   createdAt: r.created_at,
+  category: isCategoryId(r.category) ? r.category : null,
 });
 
 const RECURRING_COLUMNS =
-  'id, group_id, created_by, description, payer_id, split_input, variable, amount_cents, frequency, start_date, next_date, end_date, remaining, heads_up_days, due_date, paused, created_at';
+  'id, group_id, created_by, description, payer_id, split_input, variable, amount_cents, frequency, start_date, next_date, end_date, remaining, heads_up_days, due_date, paused, created_at, category';
 
 /**
  * A group's active recurring expenses (not stopped). Owners and co-owners see all of them;
@@ -1223,6 +1233,7 @@ export interface RecurringInput {
   endDate: string | null;
   remaining: number | null;
   headsUpDays: number;
+  category?: CategoryId | null;
 }
 
 /** Calls a database function by name, kept bound to the client (calling `supabase.rpc` detached loses `this`). */
@@ -1260,6 +1271,7 @@ export function useCreateRecurring() {
       p_first_expense_id: input.firstExpenseId ?? null,
     });
     if (error) throw error;
+    if (input.category) await setRecurringCategory(data as string, input.category);
     return data as string;
   });
 }
@@ -1277,7 +1289,14 @@ export function useUpdateRecurring() {
       ...(input.nextDate ? { p_next_date: input.nextDate } : {}),
     });
     if (error) throw error;
+    if (input.category) await setRecurringCategory(input.id, input.category);
   });
+}
+
+/** Each expense a recurring one adds gets this category. */
+async function setRecurringCategory(id: string, category: CategoryId) {
+  const { error } = await callRpc('set_recurring_category', { p_id: id, p_category: category });
+  if (error) throw error;
 }
 
 export function useSetRecurringPaused() {
