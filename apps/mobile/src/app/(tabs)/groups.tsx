@@ -1,7 +1,7 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Logo } from '@/components/brand';
@@ -83,7 +83,8 @@ export default function GroupsScreen() {
     router.push(`/invite/${token}`);
   };
   // Unfolded (expanded width): one full-width page; group cards two per row.
-  const wide = useWidthClass() === 'expanded';
+  // Two cards a row only on the Fold's unfolded screen; in a browser the page is a centred column.
+  const wide = useWidthClass() === 'expanded' && Platform.OS !== 'web';
 
   // Most recent expense or payment per group, for "2h ago" and sorting.
   const lastActivity = useMemo(() => {

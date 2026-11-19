@@ -2,7 +2,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'expo-router/ui';
 import { useEffect, type ComponentProps } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Logo } from '@/components/brand';
@@ -22,9 +22,9 @@ const TABS: { name: string; href: '/' | '/groups' | '/activity' | '/profile'; la
 ];
 
 /** One tab: icon in a pill (filled when selected) with its label underneath. Same look in the bar and the rail. */
-function TabButton(allProps: TabTriggerSlotProps & { icon: IconName; label: string }) {
+function TabButton(allProps: TabTriggerSlotProps & { icon: IconName; label: string; stacked?: boolean }) {
   // The trigger forwards a ref typed for a plain View; this button doesn't need it.
-  const { isFocused, icon, label, ref, ...props } = allProps;
+  const { isFocused, icon, label, ref, stacked, ...props } = allProps;
   void ref;
   const c = useColors();
   const pill = c.surfaceAlt;
@@ -37,7 +37,9 @@ function TabButton(allProps: TabTriggerSlotProps & { icon: IconName; label: stri
       accessibilityRole="tab"
       accessibilityState={{ selected: !!isFocused }}
       accessibilityLabel={label}
-      style={{ alignItems: 'center', gap: 4, paddingVertical: space.sm, flex: 1 }}>
+      // In the bar each tab takes an equal share of the width; stacked in a browser's side rail they sit
+      // together at the top instead of spreading down a tall window.
+      style={{ alignItems: 'center', gap: 4, paddingVertical: space.sm, flex: stacked ? undefined : 1 }}>
       <View
         style={{
           width: 64,
@@ -76,7 +78,7 @@ export default function TabsLayout() {
 
   const triggers = TABS.map((t) => (
     <TabTrigger key={t.name} name={t.name} href={t.href} asChild>
-      <TabButton icon={t.icon} label={t.label} />
+      <TabButton icon={t.icon} label={t.label} stacked={rail && Platform.OS === 'web'} />
     </TabTrigger>
   ));
 
@@ -116,7 +118,9 @@ export default function TabsLayout() {
 
   const slot = (
     <View style={{ flex: 1 }}>
-      <TabSlot />
+      {/* The slot's default lets it grow as tall as the page in a browser, which stops pages scrolling;
+          keeping it to the window's height lets each page's own scroll view scroll. */}
+      <TabSlot style={Platform.OS === 'web' ? { flexShrink: 1, flexBasis: 0, minHeight: 0 } : undefined} />
     </View>
   );
 

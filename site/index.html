@@ -59,6 +59,9 @@
   @media (max-width: 860px) { .nav img { width: 124px; } }
   .nav a { font-weight: 600; font-size: 15px; text-decoration: none; opacity: .9; }
   .nav a:hover { opacity: 1; text-decoration: underline; }
+  .nav-links { display: flex; align-items: center; gap: 22px; }
+  .nav a.login { opacity: 1; background: #fff; color: var(--deep); padding: 9px 20px; border-radius: 999px; }
+  .nav a.login:hover { text-decoration: none; background: #F3EEF8; }
   .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 40px 0 88px; }
   .hero h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 800; margin: 0 0 20px; }
   .hero h1 .dot { color: var(--red); }
@@ -132,7 +135,10 @@
   <div class="wrap">
     <nav class="nav">
       <img src="logo-full-light.png" alt="sic. sharing is caring">
-      <a href="#how">How it works</a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a class="login" href="/app/sign-in">Log in</a>
+      </div>
     </nav>
     <div class="hero-grid">
       <div>

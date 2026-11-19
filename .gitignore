@@ -10,3 +10,6 @@ builds/
 # Editors and build info
 .idea/
 *.tsbuildinfo
+
+# sic-app.com build (scripts/build-site.sh)
+.site-build/

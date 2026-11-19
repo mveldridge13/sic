@@ -8,8 +8,8 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Children, createContext, useCallback, useContext, useMemo, type ComponentProps, type ReactNode } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
+import { KeyboardAwareScrollView } from './keyboard-scroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { netByCurrency, nothingSpent, type GroupSummary } from '@/lib/data';
@@ -83,7 +83,10 @@ export function HeroScreen({
   const scheme = useColorScheme();
   const insets = useSafeAreaInsets();
   const rail = useWidthClass() === 'expanded';
-  const column = { width: '100%', maxWidth: fullWidth ? undefined : CONTENT_MAX_WIDTH, alignSelf: 'center' } as const;
+  // In a browser the window can be any size (a 49-inch monitor), so pages always keep to a centred
+  // column there; full width is only for the Fold's unfolded screen.
+  const capped = !fullWidth || Platform.OS === 'web';
+  const column = { width: '100%', maxWidth: capped ? CONTENT_MAX_WIDTH : undefined, alignSelf: 'center' } as const;
 
   // Dark status-bar icons on the light header (the sign-in screens switch them back to white).
   useFocusEffect(

@@ -1,4 +1,4 @@
-import 'expo-sqlite/localStorage/install';
+import './local-storage';
 
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
@@ -14,7 +14,7 @@ if (!url || !key) {
 
 export const supabase = createClient<Database>(url, key, {
   auth: {
-    // Phone storage from expo-sqlite. Guarded so bundling tools that evaluate this file outside the app don't crash.
+    // localStorage: the browser's on the web, expo-sqlite's on phones (see local-storage.ts). Guarded so bundling tools that evaluate this file outside the app don't crash.
     storage: typeof localStorage === 'undefined' ? undefined : localStorage,
     autoRefreshToken: true,
     persistSession: true,

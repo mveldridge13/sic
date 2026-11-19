@@ -1,11 +1,13 @@
 import { useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, type ReactNode } from 'react';
-import { Image, useColorScheme, View } from 'react-native';
-import { KeyboardAwareScrollView, useKeyboardState } from 'react-native-keyboard-controller';
+import { Image, Platform, ScrollView, useColorScheme, useWindowDimensions, View } from 'react-native';
+import { useKeyboardState } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView } from './keyboard-scroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { brand, radius, space, useColors } from '@/theme';
+import { BREAKPOINT_MEDIUM } from '@/lib/layout';
 import { usePendingInvite } from '@/lib/pending-invite';
 import { Notice, Text } from './ui';
 
@@ -94,6 +96,43 @@ export function AuthShell({
   // While typing, collapse the header to just the title so the form has room above the keyboard.
   const typing = useKeyboardState((state) => state.isVisible);
   useLightStatusBar();
+  const { width } = useWindowDimensions();
+  const inviteNotice = pendingInvite ? (
+    <Notice tone="info">You’ve been invited to a group. Create an account or log in and you’ll be added straight away.</Notice>
+  ) : null;
+
+  // A browser on a computer: the form sits in a card in the middle of the purple page instead of
+  // stretching across the window. Phones (the Fold included) keep the layout below.
+  if (Platform.OS === 'web' && width >= BREAKPOINT_MEDIUM) {
+    return (
+      <View style={{ flex: 1, backgroundColor: brand.deep }}>
+        <HeroGlow />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: space.xl }}
+          keyboardShouldPersistTaps="handled">
+          <View style={{ width: '100%', maxWidth: 440, gap: space.xl }}>
+            <View style={{ gap: space.lg }}>
+              <Logo width={104} tone="light" />
+              <View style={{ gap: space.xs }}>
+                <Text variant="display" color={brand.onDeep}>
+                  {title}
+                </Text>
+                <Text variant="body" color="rgba(255,255,255,0.75)">
+                  {subtitle}
+                </Text>
+              </View>
+            </View>
+            <View style={{ backgroundColor: c.bg, borderRadius: radius.xl, padding: space.xl, gap: space.lg }}>
+              {inviteNotice}
+              {children}
+              {footer ? <View style={{ paddingTop: space.sm, alignItems: 'center' }}>{footer}</View> : null}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: brand.deep }}>
       <HeroGlow />
@@ -134,9 +173,7 @@ export function AuthShell({
           flexGrow: 1,
         }}
         keyboardShouldPersistTaps="handled">
-        {pendingInvite ? (
-          <Notice tone="info">You’ve been invited to a group. Create an account or log in and you’ll be added straight away.</Notice>
-        ) : null}
+        {inviteNotice}
         {children}
         {footer ? (
           <View

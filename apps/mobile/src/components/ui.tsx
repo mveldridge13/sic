@@ -1,6 +1,7 @@
 import { useState, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text as RNText,
@@ -10,6 +11,7 @@ import {
   type TextInputInstance,
   type TextInputProps,
   type TextProps,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 
@@ -174,6 +176,9 @@ export function Divider() {
 }
 
 /** Labelled text input used across forms. Highlights on focus; password fields get a Show/Hide toggle. */
+/** Web only: no browser focus outline (React Native's types don't list "none", but react-native-web passes it on). */
+const NO_BROWSER_OUTLINE = Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
+
 export function Field({
   label,
   error,
@@ -222,7 +227,9 @@ export function Field({
             setFocused(false);
             onBlur?.(e);
           }}
-          style={[{ ...type.body, color: c.text, flex: 1, paddingVertical: space.md }, style]}
+          // The rounded border above shows focus; in a browser, also drawing the default square outline looks
+          // broken. Chrome's focus outline style is "auto", which ignores a width, so it has to be turned off.
+          style={[{ ...type.body, color: c.text, flex: 1, paddingVertical: space.md }, NO_BROWSER_OUTLINE, style]}
           {...rest}
         />
         {secureTextEntry ? (

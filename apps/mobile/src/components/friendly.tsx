@@ -5,7 +5,8 @@
 import { formatMoney, type Cents } from '@tally/shared';
 import { useEffect, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
-import { KeyboardAvoidingView, KeyboardAwareScrollView, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import { KeyboardAvoidingView, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView } from './keyboard-scroll';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
