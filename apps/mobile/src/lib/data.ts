@@ -39,6 +39,8 @@ export interface Group {
    */
   closedAt: string | null;
   closedBy: string | null;
+  /** The saved split new expenses in this group start with (owner and co-owners choose it). */
+  defaultSplitId: string | null;
   createdAt: string;
 }
 
@@ -136,6 +138,33 @@ export interface TallyData {
   pendingPayments: Settlement[];
   /** Balances per group, worked out on the server from the whole ledger (see my_group_summaries). */
   ledgers: Record<string, GroupLedger>;
+  /** Saved splits in your groups, by name. */
+  savedSplits: SavedSplit[];
+}
+
+/**
+ * A named way a group usually divides costs ("Electricity 50/25/25"). It's a template: picking it
+ * copies who's in and their numbers into the expense, so changing it later never touches past
+ * expenses. Equally, Percent (basis points: 33.33% = 3333) or Shares (units).
+ */
+export interface SavedSplit {
+  id: string;
+  groupId: string;
+  name: string;
+  method: SavedSplitMethod;
+  /** weight: null for Equally, basis points for Percent, units for Shares. */
+  shares: { userId: string; weight: number | null }[];
+  createdBy: string | null;
+  createdAt: string;
+  updatedBy: string | null;
+  updatedAt: string;
+}
+
+export type SavedSplitMethod = 'equal' | 'percentage' | 'shares';
+
+/** People in a saved split who are no longer in the group: it needs updating before it can be used. */
+export function goneFromSplit(split: SavedSplit, memberIds: string[]): string[] {
+  return split.shares.map((s) => s.userId).filter((id) => !memberIds.includes(id));
 }
 
 /** What the server tells you about a group's money. Members get only their own share of this. */
@@ -150,11 +179,11 @@ export interface GroupLedger {
   transfers: Transfer[];
 }
 
-const EMPTY: TallyData = { me: null, payIds: {}, people: {}, groups: [], expenses: [], settlements: [], pendingPayments: [], ledgers: {} };
+const EMPTY: TallyData = { me: null, payIds: {}, people: {}, groups: [], expenses: [], settlements: [], pendingPayments: [], ledgers: {}, savedSplits: [] };
 export const TALLY_KEY = ['tally'] as const;
 
 async function fetchTally(myId: string): Promise<TallyData> {
-  const [groupsRes, meRes, payIdsRes, ledgersRes, hiddenRes] = await Promise.all([
+  const [groupsRes, meRes, payIdsRes, ledgersRes, hiddenRes, splitsRes, defaultsRes] = await Promise.all([
     supabase
       .from('groups')
       .select(
@@ -178,11 +207,14 @@ async function fetchTally(myId: string): Promise<TallyData> {
     supabase.rpc('my_group_summaries'),
     // Only your own rows (RLS). Nobody else can see which groups you've put away.
     supabase.from('hidden_groups').select('group_id'),
+    // Saved splits and each group's default. Asked for separately so a failure here only hides them.
+    supabase.from('saved_splits').select('id, group_id, name, method, shares, created_by, created_at, updated_by, updated_at').order('name'),
+    supabase.from('groups').select('id, default_split_id').is('archived_at', null),
   ]);
   if (groupsRes.error) throw groupsRes.error;
   if (ledgersRes.error) throw ledgersRes.error;
 
-  const data: TallyData = { me: null, payIds: {}, people: {}, groups: [], expenses: [], settlements: [], pendingPayments: [], ledgers: {} };
+  const data: TallyData = { me: null, payIds: {}, people: {}, groups: [], expenses: [], settlements: [], pendingPayments: [], ledgers: {}, savedSplits: [] };
   for (const l of (ledgersRes.data ?? []) as unknown as ServerLedger[]) {
     data.ledgers[l.group_id] = {
       myBalance: l.my_balance,
@@ -210,6 +242,23 @@ async function fetchTally(myId: string): Promise<TallyData> {
 
   // Not fatal: if this fails, every group just shows as usual.
   const hidden = new Set((hiddenRes.data ?? []).map((h) => h.group_id));
+  // Not fatal either: no saved splits, and expenses start the usual way.
+  const defaults = new Map((defaultsRes.error ? [] : (defaultsRes.data ?? [])).map((g) => [g.id, g.default_split_id]));
+  if (!splitsRes.error) {
+    for (const sp of splitsRes.data ?? []) {
+      data.savedSplits.push({
+        id: sp.id,
+        groupId: sp.group_id,
+        name: sp.name,
+        method: sp.method as SavedSplitMethod,
+        shares: (sp.shares as { user_id: string; weight: number | null }[]).map((x) => ({ userId: x.user_id, weight: x.weight })),
+        createdBy: sp.created_by,
+        createdAt: sp.created_at,
+        updatedBy: sp.updated_by,
+        updatedAt: sp.updated_at,
+      });
+    }
+  }
 
   for (const g of groupsRes.data) {
     const memberIds: string[] = [];
@@ -234,6 +283,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
       hiddenByMe: hidden.has(g.id),
       closedAt: g.closed_at,
       closedBy: g.closed_by,
+      defaultSplitId: defaults.get(g.id) ?? null,
       createdAt: g.created_at,
     });
 
@@ -550,6 +600,48 @@ export function useRecordSettlement() {
  * Owner or co-owner, once everyone's square: closes the group for everyone (read-only, under Closed
  * on everyone's Groups page). The database enforces who and when.
  */
+/** Anyone in the group can save a split; the database checks the people and numbers. */
+export function useSaveSplit() {
+  return useInvalidating(async (input: { groupId: string; name: string; method: SavedSplitMethod; shares: SavedSplit['shares'] }) => {
+    const { data, error } = await supabase.rpc('save_split', {
+      p_group_id: input.groupId,
+      p_name: input.name,
+      p_method: input.method,
+      p_shares: input.shares.map((x) => ({ user_id: x.userId, weight: x.weight })),
+    });
+    if (error) throw error;
+    return data as string;
+  });
+}
+
+/** Whoever saved it, the owner or a co-owner. Past expenses keep the split they were saved with. */
+export function useUpdateSplit() {
+  return useInvalidating(async (input: { id: string; name: string; method: SavedSplitMethod; shares: SavedSplit['shares'] }) => {
+    const { error } = await supabase.rpc('update_split', {
+      p_id: input.id,
+      p_name: input.name,
+      p_method: input.method,
+      p_shares: input.shares.map((x) => ({ user_id: x.userId, weight: x.weight })),
+    });
+    if (error) throw error;
+  });
+}
+
+export function useDeleteSplit() {
+  return useInvalidating(async (id: string) => {
+    const { error } = await supabase.rpc('delete_split', { p_id: id });
+    if (error) throw error;
+  });
+}
+
+/** Owner or co-owner; null clears the default. */
+export function useSetDefaultSplit() {
+  return useInvalidating(async (input: { groupId: string; splitId: string | null }) => {
+    const { error } = await supabase.rpc('set_default_split', { p_group_id: input.groupId, p_split_id: input.splitId as string });
+    if (error) throw error;
+  });
+}
+
 export function useSetGroupClosed() {
   return useInvalidating(async ({ groupId, closed }: { groupId: string; closed: boolean }) => {
     const { error } = await supabase.rpc(closed ? 'close_group' : 'reopen_group', { p_group_id: groupId });

@@ -13,7 +13,7 @@ import {
 } from '@tally/shared';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, TextInput, View, type TextInputInstance } from 'react-native';
+import { Alert, Pressable, TextInput, View, type TextInputInstance } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 
@@ -26,9 +26,11 @@ import {
   completeRecurringDue,
   useCreateExpense,
   useCreateRecurring,
+  goneFromSplit,
   useNameOf,
   useRecurring,
   useRecurringDue,
+  useSaveSplit,
   useSetReceiptScanConsent,
   useTallyData,
   useUpdateExpense,
@@ -36,7 +38,9 @@ import {
   type Expense,
   type RecurringDue,
   type RecurringExpense,
+  type SavedSplit,
 } from '@/lib/data';
+import { formFromSaved, savedFromForm } from '@/lib/saved-splits';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
 import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
@@ -379,6 +383,16 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
   const [included, setIncluded] = useState<Record<string, boolean>>(initial.included);
   const [values, setValues] = useState<Record<string, string>>(initial.values);
   const [items, setItems] = useState<ItemRow[]>(initial.items);
+  // The saved split last picked (or the group default). Changing anything in the split clears it,
+  // and only this expense changes: the saved split itself stays as it was.
+  const [appliedSplitId, setAppliedSplitId] = useState<string | null>(null);
+  function applySaved(split: SavedSplit) {
+    const f = formFromSaved(split, members);
+    setMethod(f.method);
+    setIncluded(f.included);
+    setValues(f.values);
+    setAppliedSplitId(split.id);
+  }
   const [rest, setRest] = useState<ItemsRest>(initial.rest);
   const [receiptPath, setReceiptPath] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -405,6 +419,19 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setItems([newItem()]);
   }
   // Back from New group with a fresh group: use it (keeps the amount and description already typed).
+  // A new expense starts with the group's default saved split, if it has one that can be used.
+  // Worked out again when the group changes (pickGroup clears the split first).
+  const groupSplits = data.savedSplits.filter((sp) => sp.groupId === groupId);
+  const [defaultCheckedFor, setDefaultCheckedFor] = useState<string | null>(null);
+  if (!isEdit && !fromSaved && group && defaultCheckedFor !== group.id) {
+    setDefaultCheckedFor(group.id);
+    const fallback = groupSplits.find((sp) => sp.id === group.defaultSplitId);
+    if (fallback && goneFromSplit(fallback, group.memberIds).length === 0 && method !== 'items') applySaved(fallback);
+    else setAppliedSplitId(null);
+  }
+  const saveSplit = useSaveSplit();
+  const [naming, setNaming] = useState(false);
+  const [splitName, setSplitName] = useState('');
   const [seenNewGroup, setSeenNewGroup] = useState(params.newGroupId);
   if (params.newGroupId && params.newGroupId !== seenNewGroup) {
     setSeenNewGroup(params.newGroupId);
@@ -929,11 +956,44 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
 
         <View style={{ gap: space.sm }}>
           <Text variant="heading">Split</Text>
+          {groupSplits.length > 0 && group ? (
+            <View style={{ gap: space.xs }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs }}>
+                {groupSplits.map((sp) => {
+                  const gone = goneFromSplit(sp, group.memberIds);
+                  const fewer = sp.shares.length < group.memberIds.length ? ` · ${sp.shares.length} of ${group.memberIds.length}` : '';
+                  return (
+                    <Chip
+                      key={sp.id}
+                      label={`${sp.name}${gone.length ? ' · needs updating' : fewer}`}
+                      selected={appliedSplitId === sp.id}
+                      onPress={() =>
+                        gone.length
+                          ? Alert.alert(
+                              `${sp.name} needs updating`,
+                              `${gone.map(name).join(' and ')} ${gone.length === 1 ? 'is' : 'are'} no longer in ${group.name}, so this split can’t be used until it’s updated. Update it from the group’s ⋯ menu → Saved splits.`,
+                            )
+                          : applySaved(sp)
+                      }
+                    />
+                  );
+                })}
+              </View>
+              {appliedSplitId ? (
+                <Text variant="caption" muted>
+                  Using {groupSplits.find((sp) => sp.id === appliedSplitId)?.name}
+                  {appliedSplitId === group.defaultSplitId ? ' (the group’s default)' : ''}. Changing it here only changes this
+                  expense.
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           <Segmented
             value={method}
             onChange={(m) => {
               setMethod(m);
               setValues({});
+              setAppliedSplitId(null);
             }}
           />
           <Text variant="caption" muted>
@@ -1084,7 +1144,10 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                       <Tick
                         on={isIncluded(id)}
                         label={name(id)}
-                        onPress={() => setIncluded((s) => ({ ...s, [id]: !isIncluded(id) }))}
+                        onPress={() => {
+                          setIncluded((s) => ({ ...s, [id]: !isIncluded(id) }));
+                          setAppliedSplitId(null);
+                        }}
                       />
                     )}
                     <Text variant="heading" style={{ flex: 1 }} numberOfLines={1}>
@@ -1102,7 +1165,10 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                         {method === 'exact' && group ? <Text muted>{currencySymbol(group.currency)}</Text> : null}
                         <TextInput
                           value={values[id] ?? ''}
-                          onChangeText={(v) => setValues((s) => ({ ...s, [id]: v }))}
+                          onChangeText={(v) => {
+                            setValues((s) => ({ ...s, [id]: v }));
+                            setAppliedSplitId(null);
+                          }}
                           placeholder={method === 'shares' ? '1' : method === 'exact' ? '0.00' : '0'}
                           placeholderTextColor={c.textMuted}
                           keyboardType={method === 'shares' ? 'number-pad' : 'decimal-pad'}
@@ -1125,6 +1191,63 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
             })}
           </Card>
         </View>
+
+        {/* Save what's set up here as a saved split, without leaving the expense. */}
+        {group && !group.closedAt && !appliedSplitId && method !== 'items' && method !== 'exact' ? (
+          naming ? (
+            <Card style={{ gap: space.sm }}>
+              <Text variant="label">Name this split</Text>
+              <TextInput
+                value={splitName}
+                onChangeText={setSplitName}
+                placeholder="e.g. Electricity"
+                placeholderTextColor={c.textMuted}
+                maxLength={40}
+                autoFocus
+                selectionColor={c.focus}
+                accessibilityLabel="Saved split name"
+                style={{ ...type.body, color: c.text, backgroundColor: c.surfaceAlt, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: space.sm }}
+              />
+              {saveSplit.isError ? <Notice>{saveSplit.error.message}</Notice> : null}
+              <View style={{ flexDirection: 'row', gap: space.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Button label="Cancel" kind="secondary" onPress={() => setNaming(false)} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Save split"
+                    loading={saveSplit.isPending}
+                    disabled={!splitName.trim()}
+                    onPress={() => {
+                      const shares = savedFromForm(method, participantIds, values);
+                      if (!shares.ok) {
+                        Alert.alert('Can’t save this split yet', shares.error);
+                        return;
+                      }
+                      saveSplit.mutate(
+                        { groupId: group.id, name: splitName.trim(), method, shares: shares.shares },
+                        {
+                          onSuccess: (id) => {
+                            setNaming(false);
+                            setSplitName('');
+                            setAppliedSplitId(id);
+                            buzz.success();
+                          },
+                        },
+                      );
+                    }}
+                  />
+                </View>
+              </View>
+            </Card>
+          ) : (
+            <Pressable accessibilityRole="button" onPress={() => setNaming(true)} hitSlop={6} style={{ alignSelf: 'center', padding: space.xs }}>
+              <Text variant="label" color={c.primary}>
+                ＋ Save this split for later
+              </Text>
+            </Pressable>
+          )
+        ) : null}
 
         {/* Done sits at the end of the form, not pinned, so typing an item keeps the whole space. */}
         <View style={{ gap: space.sm }}>

@@ -532,6 +532,15 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
           />
           <Divider />
           <MenuRow
+            label="Saved splits"
+            detail="Ways this group usually divides costs, like 50/25/25"
+            onPress={() => {
+              setSheet(null);
+              router.push({ pathname: '/saved-splits/[groupId]', params: { groupId: group.id } });
+            }}
+          />
+          <Divider />
+          <MenuRow
             label="Your balance, person by person"
             onPress={() => {
               setSheet(null);

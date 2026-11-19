@@ -295,6 +295,7 @@ export type Database = {
           created_at: string;
           created_by: string;
           currency: string;
+          default_split_id: string | null;
           icon: string | null;
           id: string;
           name: string;
@@ -308,6 +309,7 @@ export type Database = {
           created_at?: string;
           created_by: string;
           currency: string;
+          default_split_id?: string | null;
           icon?: string | null;
           id?: string;
           name: string;
@@ -320,6 +322,7 @@ export type Database = {
           created_at?: string;
           created_by?: string;
           currency?: string;
+          default_split_id?: string | null;
           icon?: string | null;
           id?: string;
           name?: string;
@@ -338,6 +341,13 @@ export type Database = {
             columns: ['created_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'groups_default_split_id_fkey';
+            columns: ['default_split_id'];
+            isOneToOne: false;
+            referencedRelation: 'saved_splits';
             referencedColumns: ['id'];
           },
         ];
@@ -709,6 +719,65 @@ export type Database = {
           },
         ];
       };
+      saved_splits: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          group_id: string;
+          id: string;
+          method: string;
+          name: string;
+          shares: NonNullable<Json>;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          group_id: string;
+          id?: string;
+          method: string;
+          name: string;
+          shares: NonNullable<Json>;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          group_id?: string;
+          id?: string;
+          method?: string;
+          name?: string;
+          shares?: NonNullable<Json>;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'saved_splits_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'saved_splits_group_id_fkey';
+            columns: ['group_id'];
+            isOneToOne: false;
+            referencedRelation: 'groups';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'saved_splits_updated_by_fkey';
+            columns: ['updated_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       settlements: {
         Row: {
           amount_cents: number;
@@ -810,6 +879,7 @@ export type Database = {
       add_guest: { Args: { p_group_id: string; p_name: string }; Returns: string };
       add_members: { Args: { p_group_id: string; p_user_ids: string[] }; Returns: undefined };
       can_manage_recurring: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
+      can_manage_saved_split: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
       can_read_expense: { Args: { p_created_by: string; p_expense_id: string; p_group_id: string }; Returns: boolean };
       can_see_expense: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
       can_see_settlement: { Args: { p_created_by: string; p_from: string; p_group_id: string; p_to: string }; Returns: boolean };
@@ -827,6 +897,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      check_saved_split: { Args: { p_group_id: string; p_method: string; p_shares: Json }; Returns: Json };
       claim_receipt_scan: { Args: Record<PropertyKey, never>; Returns: undefined };
       close_group: { Args: { p_group_id: string }; Returns: undefined };
       complete_recurring_due: { Args: { p_expense_id: string; p_id: string }; Returns: undefined };
@@ -857,6 +928,7 @@ export type Database = {
           created_at: string;
           created_by: string;
           currency: string;
+          default_split_id: string | null;
           icon: string | null;
           id: string;
           name: string;
@@ -893,6 +965,7 @@ export type Database = {
       delete_expense: { Args: { p_expense_id: string }; Returns: undefined };
       delete_group: { Args: { p_group_id: string }; Returns: undefined };
       delete_my_account: { Args: Record<PropertyKey, never>; Returns: undefined };
+      delete_split: { Args: { p_id: string }; Returns: undefined };
       expense_snapshot: { Args: { p_expense_id: string }; Returns: Json };
       group_balances: {
         Args: { p_group_id: string };
@@ -1016,7 +1089,9 @@ export type Database = {
       require_user: { Args: Record<PropertyKey, never>; Returns: string };
       respond_to_payment: { Args: { p_received: boolean; p_settlement_id: string }; Returns: undefined };
       run_recurring: { Args: { p_only?: string }; Returns: number };
+      save_split: { Args: { p_group_id: string; p_method: string; p_name: string; p_shares: Json }; Returns: string };
       set_co_owner: { Args: { p_co_owner: boolean; p_group_id: string; p_user_id: string }; Returns: undefined };
+      set_default_split: { Args: { p_group_id: string; p_split_id: string }; Returns: undefined };
       set_expense_receipt: { Args: { p_expense_id: string; p_path: string }; Returns: undefined };
       set_group_icon: { Args: { p_group_id: string; p_icon: string }; Returns: undefined };
       set_my_time_zone: { Args: { p_time_zone: string }; Returns: undefined };
@@ -1031,6 +1106,7 @@ export type Database = {
           to_user_id: string;
         }[];
       };
+      split_name_taken: { Args: { p_except: string; p_group_id: string; p_name: string }; Returns: boolean };
       split_partners: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -1075,6 +1151,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      update_split: { Args: { p_id: string; p_method: string; p_name: string; p_shares: Json }; Returns: undefined };
       validate_items: { Args: { p_amount_cents: number; p_items: Json; p_splits: Json }; Returns: undefined };
       validate_splits: { Args: { p_amount_cents: number; p_group_id: string; p_splits: Json }; Returns: undefined };
       void_settlement: { Args: { p_settlement_id: string }; Returns: undefined };
