@@ -23,9 +23,11 @@ cat > "$OUT/vercel.json" <<'EOF'
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/g/:token", "destination": "/guest" },
     { "source": "/app", "destination": "/app/index.html" },
     { "source": "/app/:path*", "destination": "/app/index.html" }
-  ]
+  ],
+  "headers": [{ "source": "/g/:token", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Referrer-Policy", "value": "no-referrer" }] }]
 }
 EOF
 
@@ -34,6 +36,7 @@ cat > "$OUT/serve.json" <<'EOF'
 {
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/g/*", "destination": "/guest.html" },
     { "source": "/app", "destination": "/app/index.html" },
     { "source": "/app/**", "destination": "/app/index.html" }
   ]

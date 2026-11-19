@@ -1,4 +1,6 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "rewrites": [{ "source": "/g/:token", "destination": "/guest" }],
+  "headers": [{ "source": "/g/:token", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Referrer-Policy", "value": "no-referrer" }] }]
 }

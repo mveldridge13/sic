@@ -20,6 +20,20 @@ export function inviteLink(token: string) {
   return `${INVITE_PAGE}?code=${encodeURIComponent(token)}`;
 }
 
+/**
+ * A guest's own view link: opens their part of the group in a browser, no account or app needed
+ * (site/guest.html). On the Vercel address until sic-app.com's DNS points at Vercel; links already
+ * sent keep working after the switch, because both addresses serve the same site.
+ */
+export const GUEST_PAGE = 'https://sic-site-alpha.vercel.app/g/';
+export function guestLinkUrl(token: string) {
+  return `${GUEST_PAGE}${encodeURIComponent(token)}`;
+}
+
+export function guestLinkMessage(groupName: string, guestName: string, token: string) {
+  return `Hi ${guestName}, here’s your view of "${groupName}" on sic: what you owe, what you’ve paid and how to pay. No app or account needed.\n\n${guestLinkUrl(token)}`;
+}
+
 /** The invite code from whatever was pasted: the code itself, the web link, or a sic:// link. */
 export function inviteCodeFrom(text: string): string {
   const clean = text.trim();

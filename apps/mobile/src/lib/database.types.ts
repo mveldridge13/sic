@@ -370,6 +370,69 @@ export type Database = {
           },
         ];
       };
+      guest_links: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          group_id: string;
+          guest_id: string;
+          last_viewed_at: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+          token: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          group_id: string;
+          guest_id: string;
+          last_viewed_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          token?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          group_id?: string;
+          guest_id?: string;
+          last_viewed_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+          token?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'guest_links_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_links_group_id_fkey';
+            columns: ['group_id'];
+            isOneToOne: false;
+            referencedRelation: 'groups';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_links_guest_id_fkey';
+            columns: ['guest_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_links_revoked_by_fkey';
+            columns: ['revoked_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       hidden_groups: {
         Row: {
           group_id: string;
@@ -1006,6 +1069,8 @@ export type Database = {
         }[];
       };
       group_role_of: { Args: { p_group_id: string; p_user_id: string }; Returns: Database['public']['Enums']['group_role'] };
+      guest_link: { Args: { p_group_id: string; p_guest_id: string }; Returns: string };
+      guest_view: { Args: { p_token: string }; Returns: Json };
       in_expense_split: { Args: { p_expense_id: string }; Returns: boolean };
       invite_guests: {
         Args: { p_token: string };
@@ -1143,6 +1208,7 @@ export type Database = {
       };
       stop_recurring: { Args: { p_id: string }; Returns: undefined };
       transfer_ownership: { Args: { p_group_id: string; p_new_owner_id: string }; Returns: undefined };
+      turn_off_guest_link: { Args: { p_group_id: string; p_guest_id: string }; Returns: undefined };
       update_expense: {
         Args: {
           p_amount_cents: number;

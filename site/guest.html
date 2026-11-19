@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your group · sic.</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#605574">
+<link rel="icon" href="/favicon.png">
+<!--
+  A guest's own view of a group: opened from the private link someone in the group shared
+  (sic-app.com/g/<link>). No account or app. It shows only what concerns that guest, read through
+  the guest_view database function, and nothing can be changed from here.
+-->
+<style>
+  @font-face { font-family: Inter; font-style: normal; font-weight: 400 800; font-display: swap; src: url(/fonts/inter-latin.woff2) format('woff2'); }
+  :root {
+    --deep: #605574; --red: #EF4444; --cream: #FAF0EB; --lavender-soft: #F3EEF9; --coral: #E4928A;
+    --text: #2F2838; --muted: #6E6478; --surface: #FFFFFF; --line: #E6DDF2; --bg: var(--cream);
+    --owe: #C2410C; --owed: #15803D; --warm: #FCE7E2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1E1A24; --surface: #28222F; --lavender-soft: #3A3148; --text: #F4ECF0; --muted: #B5A9BD; --line: #3A3148;
+            --owe: #FDBA74; --owed: #86EFAC; --warm: #3B2A2E; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  header { background: var(--deep); color: #fff; padding: 18px 16px 76px; }
+  header .bar { max-width: 560px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+  header img { width: 96px; display: block; }
+  header .tag { font-size: 13px; font-weight: 600; opacity: .85; background: rgba(255,255,255,.14); padding: 4px 10px; border-radius: 999px; }
+  main { max-width: 560px; margin: -60px auto 0; padding: 0 16px 48px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 20px; margin-bottom: 16px; }
+  .hero { text-align: center; padding: 26px 20px 24px; }
+  .eyebrow { color: var(--muted); font-weight: 600; font-size: 14px; margin: 0 0 4px; }
+  .hello { font-size: 15px; margin: 0 0 14px; }
+  .figure { font-size: clamp(36px, 10vw, 46px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+  .figure.owe { color: var(--owe); } .figure.owed { color: var(--owed); }
+  .sub { color: var(--muted); margin: 6px 0 0; font-size: 15px; }
+  .closed { display: inline-block; margin-top: 12px; font-size: 13px; font-weight: 600; background: var(--lavender-soft); padding: 4px 12px; border-radius: 999px; }
+  h2 { font-size: 18px; margin: 26px 4px 10px; letter-spacing: -0.01em; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .list { padding: 4px 18px; }
+  .emoji { width: 40px; height: 40px; flex: none; display: grid; place-items: center; font-size: 20px; border-radius: 14px; background: var(--lavender-soft); }
+  .row:nth-child(even) .emoji { background: var(--warm); }
+  .grow { flex: 1; min-width: 0; }
+  .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { color: var(--muted); font-size: 13.5px; }
+  .amt { text-align: right; font-weight: 700; white-space: nowrap; }
+  .amt .meta { font-weight: 500; }
+  .pay { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .pay strong { font-size: 18px; }
+  .payid { margin-top: 14px; background: var(--lavender-soft); border-radius: 18px; padding: 14px 16px; }
+  .payid .label { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .payid .value { font-size: 20px; font-weight: 700; letter-spacing: .01em; word-break: break-all; }
+  .payid .name { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  button.copy { margin-top: 10px; border: 0; border-radius: 999px; background: var(--deep); color: #fff; font: 600 15px Inter, system-ui, sans-serif; padding: 10px 18px; cursor: pointer; }
+  button.copy:active { transform: scale(.96); }
+  .note { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
+  .empty { color: var(--muted); text-align: center; padding: 18px 0; margin: 0; }
+  .pending { font-size: 12px; font-weight: 600; color: var(--muted); background: var(--lavender-soft); padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+  footer { max-width: 560px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted); font-size: 14px; text-align: center; }
+  footer a { color: inherit; }
+  .sic { color: var(--deep); font-weight: 700; } .sic-dot { color: var(--red); }
+  @media (prefers-color-scheme: dark) { .sic { color: #E6DDF2; } }
+  .loading { text-align: center; color: var(--muted); padding: 40px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a href="/" aria-label="sic. home"><img src="/logo-full-light.png" alt="sic."></a>
+    <span class="tag">View only</span>
+  </div>
+</header>
+<main id="main"><div class="card loading">Loading…</div></main>
+<footer id="foot" hidden></footer>
+
+<script>
+(function () {
+  // The live database, or the local one when trying the page on this computer.
+  var local = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  var API = local ? 'http://127.0.0.1:54321' : 'https://axrkifmfmrfjyxwnhsdv.supabase.co';
+  var KEY = local
+    ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
+    : 'sb_publishable_4SoCWvix28fX1D8WYnFZXQ_ynMmJt9P';
+
+  var main = document.getElementById('main');
+  var foot = document.getElementById('foot');
+  var token = (location.pathname.match(/\/g\/([0-9a-f]+)/) || [])[1] || new URLSearchParams(location.search).get('t');
+
+  var CATEGORY_EMOJI = { food: '🍽️', groceries: '🛒', accommodation: '🏨', transport: '🚗', home: '🏠', bills: '💡',
+    entertainment: '🎟️', shopping: '🛍️', health: '💊', other: '📦' };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+  function first(name) { return String(name || '').trim().split(/\s+/)[0]; }
+  // Amounts are in the currency's smallest unit (cents; whole yen for JPY).
+  function money(minor, currency) {
+    var f = new Intl.NumberFormat(undefined, { style: 'currency', currency: currency });
+    var digits = f.resolvedOptions().maximumFractionDigits;
+    return f.format(Math.abs(minor) / Math.pow(10, digits));
+  }
+  function day(iso) { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function payidShown(p) {
+    if (p.type === 'phone' && /^\+614\d{8}$/.test(p.value)) { var n = '0' + p.value.slice(3); return n.slice(0, 4) + ' ' + n.slice(4, 7) + ' ' + n.slice(7); }
+    if (p.type === 'abn' && /^\d{11}$/.test(p.value)) return p.value.slice(0, 2) + ' ' + p.value.slice(2, 5) + ' ' + p.value.slice(5, 8) + ' ' + p.value.slice(8);
+    return p.value;
+  }
+  function payidCopy(p) { return p.type === 'phone' && /^\+614\d{8}$/.test(p.value) ? '0' + p.value.slice(3) : p.value; }
+
+  function fail(message) {
+    document.title = 'Link not working · sic.';
+    main.innerHTML = '<div class="card hero"><p class="figure" style="font-size:40px">🔗</p>' +
+      '<p style="font-weight:700;font-size:20px;margin:10px 0 4px">This link isn’t working</p>' +
+      '<p class="sub">' + esc(message || 'Ask the person who sent it for a new one.') + '</p>' +
+      '<p class="note">It stops working if it’s turned off, or once you’ve joined <span class="sic">sic<span class="sic-dot">.</span></span> yourself.</p></div>';
+  }
+
+  if (!token) return fail('The link looks incomplete. Try copying the whole link again.');
+
+  fetch(API + '/rest/v1/rpc/guest_view', {
+    method: 'POST',
+    headers: { apikey: KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_token: token }),
+  })
+    .then(function (r) { return r.json().then(function (body) { return { ok: r.ok, body: body }; }); })
+    .then(function (res) {
+      // The database says "This link isn’t working any more. Ask …": the heading already says the first part.
+      if (!res.ok) return fail(res.body && res.body.code === '22023' ? res.body.message.replace(/^This link isn’t working any more\.\s*/, '') : 'Something went wrong. Try again in a moment.');
+      render(res.body);
+    })
+    .catch(function () { fail('Couldn’t reach sic. Check your connection and try again.'); });
+
+  function render(v) {
+    var cur = v.group.currency;
+    var m = function (x) { return money(x, cur); };
+    var groupLabel = (v.group.icon ? v.group.icon + ' ' : '') + v.group.name;
+    document.title = v.group.name + ' · sic.';
+    var html = '';
+
+    // ─── Balance ───
+    var b = v.balance;
+    html += '<section class="card hero">' +
+      '<p class="eyebrow">' + esc(groupLabel) + '</p>' +
+      '<p class="hello">Hi ' + esc(first(v.guest)) + ', here’s where you stand</p>' +
+      (b < 0 ? '<p class="figure owe">' + m(b) + '</p><p class="sub">you owe</p>'
+        : b > 0 ? '<p class="figure owed">' + m(b) + '</p><p class="sub">you’re owed</p>'
+        : '<p class="figure">All square 🎉</p><p class="sub">' + (v.expenses.length ? 'You don’t owe anything' : 'No expenses yet') + '</p>') +
+      (v.group.closed ? '<span class="closed">🔒 This group is closed</span>' : '') +
+      '</section>';
+
+    // ─── How to settle ───
+    if (v.transfers.length) {
+      html += '<h2>' + (b < 0 ? 'How to settle up' : 'Who pays you') + '</h2><section class="card">';
+      v.transfers.forEach(function (t, i) {
+        var line = t.guest_pays ? 'Pay ' + esc(first(t.to)) : esc(first(t.from)) + ' pays you';
+        html += '<div class="pay"' + (i ? ' style="margin-top:14px"' : '') + '><span>' + line + '</span><strong>' + m(t.amount) + '</strong></div>';
+        if (t.guest_pays && t.to_owner && v.payid) {
+          html += '<div class="payid"><div class="label">' + esc(first(t.to)) + '’s PayID</div>' +
+            '<div class="value">' + esc(payidShown(v.payid)) + '</div>' +
+            (v.payid.account_name ? '<div class="name">Check your bank shows the name ' + esc(v.payid.account_name) + '</div>' : '') +
+            '<button class="copy" type="button" data-copy="' + esc(payidCopy(v.payid)) + '">Copy PayID</button></div>';
+        }
+      });
+      html += '<p class="note">Once you’ve paid, let them know so they can record it. It shows here when they do.</p></section>';
+    }
+
+    // ─── Expenses ───
+    html += '<h2>Your expenses</h2><section class="card list">';
+    if (!v.expenses.length) html += '<p class="empty">Nothing yet.</p>';
+    v.expenses.forEach(function (e) {
+      var share = e.share == null ? 0 : e.share;
+      var who = e.paid_by_guest ? 'You paid ' + m(e.amount) : esc(first(e.payer)) + ' paid ' + m(e.amount);
+      if (e.original_currency && e.original_amount) who += ' (' + money(e.original_amount, e.original_currency) + ')';
+      html += '<div class="row"><div class="emoji">' + (CATEGORY_EMOJI[e.category] || '🧾') + '</div>' +
+        '<div class="grow"><div class="title">' + esc(e.description) + '</div><div class="meta">' + day(e.date) + ' · ' + who + '</div></div>' +
+        '<div class="amt">' + (share ? m(share) : '–') + '<div class="meta">your share</div></div></div>';
+    });
+    html += '</section>';
+
+    // ─── Payments ───
+    if (v.payments.length) {
+      html += '<h2>Payments</h2><section class="card list">';
+      v.payments.forEach(function (p) {
+        var line = p.guest_paid ? 'You paid ' + esc(first(p.to)) : esc(first(p.from)) + ' paid you';
+        html += '<div class="row"><div class="emoji">💸</div><div class="grow"><div class="title">' + line +
+          (p.pending ? '<span class="pending">waiting to be confirmed</span>' : '') + '</div>' +
+          '<div class="meta">' + day(p.date) + '</div></div><div class="amt">' + m(p.amount) + '</div></div>';
+      });
+      html += '</section>';
+    }
+
+    main.innerHTML = html;
+    foot.hidden = false;
+    foot.innerHTML = 'This is a view-only link to your part of ' + esc(v.group.name) + '. Don’t share it: anyone with it can see this page.' +
+      '<br><br>Want to add expenses too? Ask ' + esc(first(v.owner) || 'the group') + ' to invite you to <span class="sic">sic<span class="sic-dot">.</span></span>' +
+      ' Everything here comes with you. · <a href="/">About sic.</a>';
+
+    main.querySelectorAll('button.copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var text = btn.getAttribute('data-copy');
+        var done = function () { btn.textContent = 'Copied ✓'; setTimeout(function () { btn.textContent = 'Copy PayID'; }, 1800); };
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { prompt('Copy the PayID:', text); });
+        else prompt('Copy the PayID:', text);
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

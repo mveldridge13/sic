@@ -8,6 +8,7 @@ import { CountUp } from '@/components/fun';
 import { Bubble, BubbleDays } from '@/components/group-visuals';
 import { Avatar, Button, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
+import { GuestLinkCard } from '@/components/guest-link-card';
 import { PayIdCard } from '@/components/payid-card';
 import { PAYID_CURRENCY, useNameOf, useRemoveMember, useSetCoOwner, useTallyData, useTransferOwnership } from '@/lib/data';
 import { sendInvite } from '@/lib/invite';
@@ -353,6 +354,7 @@ export default function BalanceBreakdownScreen() {
                 {they} was added by name and doesn’t have a sic account yet. When they accept this invite, everything recorded for them
                 here becomes theirs.
               </Text>
+              <GuestLinkCard groupId={group.id} groupName={group.name} myRole={group.myRole} guestId={otherId} guestName={they} />
             </>
           ) : null}
           {/* Owner only: managing this person. The two role changes share a row; removing sits under them, in red. */}

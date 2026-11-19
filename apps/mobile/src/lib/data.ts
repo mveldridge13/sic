@@ -977,6 +977,49 @@ export async function createInvite(groupId: string, guestId?: string): Promise<s
   return data;
 }
 
+/** A guest's private view link, when one is on: who shared it and when it was last opened. */
+export interface GuestLink {
+  token: string;
+  createdBy: string | null;
+  createdAt: string;
+  lastViewedAt: string | null;
+}
+
+export function useGuestLink(groupId: string, guestId: string | undefined) {
+  return useQuery({
+    queryKey: [...TALLY_KEY, 'guest-link', groupId, guestId],
+    enabled: !!guestId,
+    queryFn: async (): Promise<GuestLink | null> => {
+      const { data, error } = await supabase
+        .from('guest_links')
+        .select('token, created_by, created_at, last_viewed_at')
+        .eq('group_id', groupId)
+        .eq('guest_id', guestId!)
+        .is('revoked_at', null)
+        .maybeSingle();
+      // A database without guest links yet: just show no link.
+      if (error) return null;
+      return data && { token: data.token, createdBy: data.created_by, createdAt: data.created_at, lastViewedAt: data.last_viewed_at };
+    },
+  });
+}
+
+/** The guest's link, made the first time it's shared. */
+export function useShareGuestLink() {
+  return useInvalidating(async (input: { groupId: string; guestId: string }): Promise<string> => {
+    const { data, error } = await supabase.rpc('guest_link', { p_group_id: input.groupId, p_guest_id: input.guestId });
+    if (error) throw error;
+    return data;
+  });
+}
+
+export function useTurnOffGuestLink() {
+  return useInvalidating(async (input: { groupId: string; guestId: string }) => {
+    const { error } = await supabase.rpc('turn_off_guest_link', { p_group_id: input.groupId, p_guest_id: input.guestId });
+    if (error) throw error;
+  });
+}
+
 export interface AppNotification {
   id: string;
   kind:
