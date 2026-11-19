@@ -22,10 +22,10 @@ export function inviteLink(token: string) {
 
 /**
  * A guest's own view link: opens their part of the group in a browser, no account or app needed
- * (site/guest.html). On the Vercel address until sic-app.com's DNS points at Vercel; links already
- * sent keep working after the switch, because both addresses serve the same site.
+ * (site/guest.html). Links sent before 19 Nov 2026 used sic-site-alpha.vercel.app/g/, which serves
+ * the same site, so they keep working.
  */
-export const GUEST_PAGE = 'https://sic-site-alpha.vercel.app/g/';
+export const GUEST_PAGE = 'https://sic-app.com/g/';
 export function guestLinkUrl(token: string) {
   return `${GUEST_PAGE}${encodeURIComponent(token)}`;
 }
