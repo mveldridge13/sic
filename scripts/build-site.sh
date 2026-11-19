@@ -24,8 +24,7 @@ cat > "$OUT/vercel.json" <<'EOF'
   "trailingSlash": false,
   "rewrites": [
     { "source": "/g/:token", "destination": "/guest" },
-    { "source": "/app", "destination": "/app/index.html" },
-    { "source": "/app/:path*", "destination": "/app/index.html" }
+    { "source": "/app/:path*", "destination": "/app" }
   ],
   "headers": [{ "source": "/g/:token", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }, { "key": "Referrer-Policy", "value": "no-referrer" }] }]
 }
