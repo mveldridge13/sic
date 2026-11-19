@@ -12,6 +12,7 @@ import { Card, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
 import { useNameOf, useTallyData } from '@/lib/data';
 import { CATEGORIES, categoryById, categoryOf, type CategoryId } from '@/lib/categories';
+import { CategoryGrid } from '@/components/category-grid';
 import { matchesSearch } from '@/lib/search';
 import { dayLabel } from '@/lib/format';
 import { useWidthClass } from '@/lib/layout';
@@ -444,49 +445,20 @@ export default function ActivityScreen() {
       </HeroScreen>
 
       <Sheet visible={pickingCategory} onClose={() => setPickingCategory(false)} title="Show expenses for">
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-          {[{ id: 'all' as const, emoji: '🗂️', name: 'All categories' }, ...CATEGORIES].map((cat) => {
-            const selected = cat.id === categoryFilter;
+        <CategoryGrid
+          tiles={[{ id: 'all' as const, emoji: '🗂️', name: 'All categories' }, ...CATEGORIES].map((cat) => {
             const count =
               cat.id === 'all'
-                ? all.length
-                : all.filter(
-                    (i) => i.kind === 'expense' && (groupId === 'all' || i.groupId === groupId) && expenseCategory(i.id) === cat.id,
-                  ).length;
-            return (
-              <Pressable
-                key={cat.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${cat.name}, ${count}`}
-                onPress={() => {
-                  buzz.tap();
-                  setCategoryFilter(cat.id);
-                  setPickingCategory(false);
-                }}
-                style={({ pressed }) => ({
-                  width: '48.5%',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingVertical: space.md,
-                  paddingHorizontal: space.sm,
-                  borderRadius: radius.lg,
-                  borderWidth: selected ? 2 : 1,
-                  borderColor: selected ? c.focus : c.border,
-                  backgroundColor: selected ? c.surfaceAlt : c.surface,
-                  opacity: pressed ? 0.8 : 1,
-                })}>
-                <Text style={{ fontSize: 28 }}>{cat.emoji}</Text>
-                <Text variant="label" numberOfLines={1}>
-                  {cat.name}
-                </Text>
-                <Text variant="caption" muted>
-                  {count}
-                </Text>
-              </Pressable>
-            );
+                ? all.filter((i) => groupId === 'all' || i.groupId === groupId).length
+                : all.filter((i) => i.kind === 'expense' && (groupId === 'all' || i.groupId === groupId) && expenseCategory(i.id) === cat.id).length;
+            return { ...cat, note: `${count} ${count === 1 ? 'item' : 'items'}` };
           })}
-        </View>
+          selected={categoryFilter}
+          onPick={(id) => {
+            setCategoryFilter(id);
+            setPickingCategory(false);
+          }}
+        />
       </Sheet>
 
       <Sheet visible={pickingGroup} onClose={() => setPickingGroup(false)} title="Show activity from">

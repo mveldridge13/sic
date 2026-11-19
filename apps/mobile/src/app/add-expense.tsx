@@ -52,6 +52,7 @@ import {
 import { formFromSaved, savedFromForm } from '@/lib/saved-splits';
 import { canPayIn, PAY_CURRENCIES } from '@/lib/currencies';
 import { CATEGORIES, categoryById, guessCategory, type CategoryId } from '@/lib/categories';
+import { CategoryGrid } from '@/components/category-grid';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
 import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
@@ -1462,46 +1463,14 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       {/* Which group (only when starting from Home with more than one group) */}
       {/* Category: ten tiles, two to a row */}
       <Sheet visible={sheet === 'category'} onClose={() => setSheet(null)} title="Category">
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-          {CATEGORIES.map((cat) => {
-            const selected = cat.id === category;
-            const isSuggestion = !pickedCategory && cat.id === suggestedCategory;
-            return (
-              <Pressable
-                key={cat.id}
-                accessibilityRole="radio"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${cat.name}${isSuggestion ? ', suggested' : ''}`}
-                onPress={() => {
-                  setPickedCategory(cat.id);
-                  buzz.tap();
-                  setSheet(null);
-                }}
-                style={({ pressed }) => ({
-                  width: '48.5%',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingVertical: space.md,
-                  paddingHorizontal: space.sm,
-                  borderRadius: radius.lg,
-                  borderWidth: selected ? 2 : 1,
-                  borderColor: selected ? c.focus : c.border,
-                  backgroundColor: selected ? c.surfaceAlt : c.surface,
-                  opacity: pressed ? 0.8 : 1,
-                })}>
-                <Text style={{ fontSize: 28 }}>{cat.emoji}</Text>
-                <Text variant="label" numberOfLines={1}>
-                  {cat.name}
-                </Text>
-                {isSuggestion ? (
-                  <Text variant="caption" muted>
-                    suggested
-                  </Text>
-                ) : null}
-              </Pressable>
-            );
-          })}
-        </View>
+        <CategoryGrid
+          tiles={CATEGORIES.map((cat) => ({ ...cat, note: !pickedCategory && cat.id === suggestedCategory ? 'suggested' : undefined }))}
+          selected={category}
+          onPick={(id) => {
+            setPickedCategory(id);
+            setSheet(null);
+          }}
+        />
       </Sheet>
 
       {/* Which currency it was paid in */}
