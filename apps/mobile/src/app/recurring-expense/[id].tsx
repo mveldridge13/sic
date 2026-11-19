@@ -25,6 +25,7 @@ import {
 } from '@/lib/data';
 
 import { brand, groupColor, radius, space, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 function ActionPill({ icon, label, onPress, danger, busy }: { icon: 'pause' | 'play-arrow' | 'edit' | 'stop-circle'; label: string; onPress: () => void; danger?: boolean; busy?: boolean }) {
   const c = useColors();
@@ -185,7 +186,7 @@ export default function RecurringExpenseScreen() {
       {
         text: 'Stop recurring',
         style: 'destructive',
-        onPress: () => stop.mutate(r.id, { onSuccess: () => router.back(), onError: (e) => Alert.alert('Couldn’t stop it', e.message) }),
+        onPress: () => stop.mutate(r.id, { onSuccess: () => goBack(), onError: (e) => Alert.alert('Couldn’t stop it', e.message) }),
       },
     ]);
 

@@ -12,6 +12,7 @@ import { PayIdCard } from '@/components/payid-card';
 import { useMyId } from '@/lib/auth';
 import { PAYID_CURRENCY, useCorrectSettlement, useNameOf, useRecordSettlement, useTallyData } from '@/lib/data';
 import { radius, space, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 function AmountChip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const c = useColors();
@@ -127,7 +128,7 @@ export default function SettleScreen() {
         { settlementId: editing.id, amount: cents, note },
         {
           // A correction that needs confirming is pending, so it has no details screen yet: go back.
-          onSuccess: (newId) => (needsConfirm ? router.back() : router.replace({ pathname: '/payment/[id]', params: { id: newId } })),
+          onSuccess: (newId) => (needsConfirm ? goBack() : router.replace({ pathname: '/payment/[id]', params: { id: newId } })),
         },
       );
     } else {
@@ -170,7 +171,7 @@ export default function SettleScreen() {
           </Text>
         </View>
         <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg }}>
-          <Button label="Done" onPress={() => router.back()} />
+          <Button label="Done" onPress={() => goBack()} />
         </View>
       </View>
     );
@@ -211,7 +212,7 @@ export default function SettleScreen() {
         </View>
         {/* Clear the phone's navigation bar (and the status bar up top, on the view above). */}
         <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg }}>
-          <Button label="Done" onPress={() => router.back()} />
+          <Button label="Done" onPress={() => goBack()} />
         </View>
         <Confetti fire={confetti} />
       </View>

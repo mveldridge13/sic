@@ -2,9 +2,9 @@
  * The category tiles, in the same playful style as New group's "What's it for?": two big tiles a
  * row in alternating warm and lavender, springing in one after another, squashing when pressed.
  * The picked tile turns purple and pops, the others fade, and the choice lands a beat later so
- * the pop can be seen. Used on Add expense (pick a category) and Activity (filter by one).
+ * the pop can be seen. Used on Add expense (pick a category or a group) and Activity (filter by category).
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -15,6 +15,8 @@ import { radius, space, useColors } from '@/theme';
 export interface GridTile<Id extends string> {
   id: Id;
   emoji: string;
+  /** Drawn instead of the emoji (e.g. a group's icon). */
+  icon?: ReactNode;
   name: string;
   /** A small line under the name: "suggested", or a count. */
   note?: string;
@@ -78,7 +80,7 @@ export function CategoryGrid<Id extends string>({
                     opacity: faded ? 0.35 : 1,
                     transform: [{ scale: chosen ? 1.04 : 1 }],
                   }}>
-                  <Text style={{ fontSize: 26, lineHeight: 32 }}>{t.emoji}</Text>
+                  {t.icon ?? <Text style={{ fontSize: 26, lineHeight: 32 }}>{t.emoji}</Text>}
                   <Text variant="heading" color={chosen ? c.onPrimary : c.text} numberOfLines={1} style={{ fontWeight: '700' }}>
                     {t.name}
                   </Text>

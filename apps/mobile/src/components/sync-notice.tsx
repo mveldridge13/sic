@@ -3,13 +3,13 @@
  * Waiting: it goes up by itself once the signal's back. Couldn't sync: why, with Try again and
  * Delete (an expense can also be fixed with Edit, which tries again).
  */
-import { router } from 'expo-router';
 import { Alert, View } from 'react-native';
 
 import { Button, Notice } from '@/components/ui';
 import type { SyncState } from '@/lib/data';
 import { removeFromOutbox, retryEntry } from '@/lib/offline';
 import { space } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 /** End the database's message with a full stop if it has none. */
 const sentence = (text: string) => (/[.!?]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`);
@@ -30,7 +30,7 @@ export function SyncNotice({ id, sync, error, kind }: { id: string; sync: SyncSt
         style: 'destructive',
         onPress: () => {
           removeFromOutbox(id);
-          router.back();
+          goBack();
         },
       },
     ]);

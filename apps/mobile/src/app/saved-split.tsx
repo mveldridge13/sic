@@ -5,7 +5,7 @@
  * split is updated, and their share is never handed to anyone automatically.
  */
 import { centsToDecimalString, FULL_PERCENT_BPS, parseToCents } from '@tally/shared';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
@@ -15,6 +15,7 @@ import { useMyId } from '@/lib/auth';
 import { goneFromSplit, useNameOf, useSaveSplit, useTallyData, useUpdateSplit, type SavedSplitMethod } from '@/lib/data';
 import { formFromSaved, SAVED_METHOD_LABEL, savedFromForm } from '@/lib/saved-splits';
 import { brand, groupColor, radius, space, type, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const HINTS: Record<SavedSplitMethod, string> = {
   equal: 'Everyone ticked pays the same.',
@@ -77,7 +78,7 @@ export default function SavedSplitScreen() {
     const shares = savedFromForm(method, people, values);
     if (!shares.ok) return setError(shares.error);
     const input = { name: splitName.trim(), method, shares: shares.shares };
-    const done = { onSuccess: () => router.back(), onError: (e: Error) => setError(e.message) };
+    const done = { onSuccess: () => goBack(), onError: (e: Error) => setError(e.message) };
     if (existing) update.mutate({ ...input, id: existing.id }, done);
     else save.mutate({ ...input, groupId: group!.id }, done);
   }

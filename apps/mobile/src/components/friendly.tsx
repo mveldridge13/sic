@@ -4,7 +4,7 @@
  */
 import { formatMoney, type Cents } from '@tally/shared';
 import { useEffect, type ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import { KeyboardAvoidingView, useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import { KeyboardAwareScrollView } from './keyboard-scroll';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
@@ -167,6 +167,8 @@ function SheetBody({
         style={[
           {
             ...(fullHeight ? { height: '88%' } : { maxHeight: '88%' }),
+            // In a browser the window can be very wide: keep the panel phone-width, centred.
+            ...(Platform.OS === 'web' ? { width: '100%', maxWidth: 560, alignSelf: 'center' } : null),
             backgroundColor: c.bg,
             borderTopLeftRadius: 32,
             borderTopRightRadius: 32,

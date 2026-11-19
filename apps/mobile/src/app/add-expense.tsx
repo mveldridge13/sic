@@ -58,6 +58,7 @@ import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, toda
 import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
 import { brand, groupColor, radius, space, type, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 /**
  * The ways to split offered on the form. Adjustments are covered by Items (one extra plus
@@ -773,7 +774,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       category,
     };
     if (editing) {
-      updateExpense.mutate({ ...input, expenseId: editing.id }, { onSuccess: () => router.back() });
+      updateExpense.mutate({ ...input, expenseId: editing.id }, { onSuccess: () => goBack() });
       return;
     }
     const recurringInput = {
@@ -817,7 +818,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
           await keepReceipt(await createExpense.mutateAsync({ ...input, groupId: group.id }));
         }
         buzz.success();
-        router.back();
+        goBack();
       } catch (e) {
         setSaveError(e instanceof Error ? e.message : 'Couldn’t save. Please try again.');
       } finally {
@@ -1587,33 +1588,21 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       </Sheet>
 
       <Sheet visible={sheet === 'group'} onClose={() => setSheet(null)} title="Which group?">
-        <View style={{ gap: space.sm }}>
-          {groups.map((g) => (
-            <Pressable
-              key={g.id}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: g.id === groupId }}
-              onPress={() => {
-                pickGroup(g.id);
-                setSheet(null);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: space.md,
-                padding: space.md,
-                borderRadius: radius.lg,
-                borderWidth: g.id === groupId ? 2 : 1,
-                borderColor: g.id === groupId ? c.focus : c.border,
-                backgroundColor: c.surface,
-              }}>
-              <GroupIcon group={g} size={40} />
-              <Text variant="heading" style={{ flex: 1 }} numberOfLines={1}>
-                {g.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {/* Two tiles a row, like the category grid, so even a long list of groups fits on the screen. */}
+        <CategoryGrid
+          tiles={groups.map((g) => ({
+            id: g.id,
+            emoji: '',
+            icon: <GroupIcon group={g} size={34} />,
+            name: g.name,
+            note: `${g.memberIds.length} ${g.memberIds.length === 1 ? 'person' : 'people'}`,
+          }))}
+          selected={groupId ?? null}
+          onPick={(id) => {
+            pickGroup(id);
+            setSheet(null);
+          }}
+        />
       </Sheet>
 
       {/* Recurring: how often, when it starts and ends, the heads-up, and whether the amount changes. */}

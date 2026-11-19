@@ -14,6 +14,7 @@ import { seesEverything, useDeleteExpense, useExpenseHistory, useNameOf, useRemo
 import { relativeTime } from '@/lib/format';
 import { useReceiptUrl } from '@/lib/receipts';
 import { radius, space, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const METHOD_LABEL = {
   equal: 'Split equally',
@@ -93,7 +94,7 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
           style: 'destructive',
           onPress: () =>
             deleteExpense.mutate(expense!.id, {
-              onSuccess: () => (onGone ? onGone() : router.back()),
+              onSuccess: () => (onGone ? onGone() : goBack()),
             }),
         },
       ],

@@ -9,6 +9,7 @@ import { useMyId } from '@/lib/auth';
 import { useNameOf, useRemindToConfirm, useReplacedPayment, useTallyData, useVoidSettlement } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
 import { brand, space } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -95,7 +96,7 @@ export function PaymentDetail({ id, embedded = false, onGone }: { id: string; em
           style: 'destructive',
           onPress: () =>
             voidSettlement.mutate(payment!.id, {
-              onSuccess: () => (onGone ? onGone() : router.back()),
+              onSuccess: () => (onGone ? onGone() : goBack()),
             }),
         },
       ],

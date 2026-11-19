@@ -17,6 +17,7 @@ import { GROUP_TYPES, type GroupType } from '@/lib/group-types';
 import { useAddGuest, useAddMembers, useCreateGroup, useSplitPartners, useTallyData } from '@/lib/data';
 import { useMyId } from '@/lib/auth';
 import { groupColor, radius, space, type as typeScale, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 const CURRENCY_INFO: Record<Currency, { symbol: string; name: string }> = {
   AUD: { symbol: 'A$', name: 'Australian dollars' },
@@ -137,7 +138,7 @@ export default function NewGroupScreen() {
   const meName = data.people[myId]?.name ?? 'You';
 
   const back = useCallback(() => {
-    if (created || step === 0) router.back();
+    if (created || step === 0) goBack();
     else setStep((s) => s - 1);
     return true;
   }, [created, step]);

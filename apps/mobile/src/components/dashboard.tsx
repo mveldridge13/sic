@@ -8,17 +8,18 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router, useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { Children, createContext, useCallback, useContext, useMemo, type ComponentProps, type ReactNode } from 'react';
-import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, useColorScheme, View } from 'react-native';
+import { Platform, Pressable, RefreshControl, ScrollView, StyleSheet, useColorScheme, useWindowDimensions, View } from 'react-native';
 import { KeyboardAwareScrollView } from './keyboard-scroll';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { netByCurrency, nothingSpent, type GroupSummary } from '@/lib/data';
 import { relativeTime } from '@/lib/format';
 import { PRESS_DELAY, balanceColor, brand, radius, space, useColors } from '@/theme';
-import { CONTENT_MAX_WIDTH, useWidthClass } from '@/lib/layout';
+import { CONTENT_MAX_WIDTH, NAV_RAIL_SIDE, NAV_RAIL_WIDTH, useWidthClass } from '@/lib/layout';
 import { HeroGlow, Logo } from './brand';
 import { GroupIcon } from './friendly';
 import { Text } from './ui';
+import { goBack } from '@/lib/nav';
 
 /** Secondary text on navy (re-exported from the theme for convenience). */
 export const onDeepMuted = brand.onDeepMuted;
@@ -86,7 +87,23 @@ export function HeroScreen({
   // In a browser the window can be any size (a 49-inch monitor), so pages always keep to a centred
   // column there; full width is only for the Fold's unfolded screen.
   const capped = !fullWidth || Platform.OS === 'web';
-  const column = { width: '100%', maxWidth: capped ? CONTENT_MAX_WIDTH : undefined, alignSelf: 'center' } as const;
+  const { width: windowWidth } = useWindowDimensions();
+  // In a browser, pages beside the side rail are nudged left by half the rail, so every page (and
+  // every slide-up panel) shares the window's centre line; otherwise moving from Home to Add expense
+  // jumps sideways. Only when there's room, so the column never runs under the rail.
+  const shift =
+    Platform.OS === 'web' && rail && nav === 'tab' && windowWidth >= CONTENT_MAX_WIDTH + 2 * NAV_RAIL_WIDTH + 2 * space.lg
+      ? (NAV_RAIL_SIDE === 'right' ? 1 : -1) * (NAV_RAIL_WIDTH / 2)
+      : 0;
+  const column = {
+    width: '100%',
+    maxWidth: capped ? CONTENT_MAX_WIDTH : undefined,
+    alignSelf: 'center',
+    transform: [{ translateX: shift }],
+  } as const;
+  // The title row sits in the page's padding, the cards in their own Gutter inside the column, so on
+  // a wide screen the title column is narrower by the gutters: then they line up on both edges.
+  const titleColumn = { ...column, maxWidth: capped ? CONTENT_MAX_WIDTH - 2 * space.lg : undefined } as const;
 
   // Dark status-bar icons on the light header (the sign-in screens switch them back to white).
   useFocusEffect(
@@ -111,7 +128,7 @@ export function HeroScreen({
           paddingHorizontal: space.lg,
           paddingBottom: space.lg,
         }}>
-        <View style={[column, { gap: space.md }]}>
+        <View style={[titleColumn, { gap: space.md }]}>
           {topRow ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
               {showLogo ? (
@@ -271,7 +288,7 @@ export function HeroIconButton({ icon, label, onPress }: { icon: 'back' | 'close
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label ?? (icon === 'back' ? 'Back' : 'Close')}
-      onPress={onPress ?? (() => router.back())}
+      onPress={onPress ?? (() => goBack())}
       hitSlop={12}
       style={({ pressed }) => ({
         width: 40,

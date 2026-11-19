@@ -3,7 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState, useColorScheme } from 'react-native';
+import { AppState, Platform, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { OfflineBar } from '@/components/offline-bar';
@@ -19,6 +19,14 @@ SplashScreen.setOptions({ fade: true, duration: 350 });
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
 });
+
+// In a browser, fields get the browser's own blue focus box on top of sic's styling. Every field
+// already shows focus its own way, so the browser's box is turned off for all of them at once.
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = 'input:focus, textarea:focus { outline: none; }';
+  document.head.appendChild(style);
+}
 
 // Back online: send what was saved with no signal, then bring everything up to date.
 setRefresher(() => queryClient.invalidateQueries({ queryKey: TALLY_KEY }));

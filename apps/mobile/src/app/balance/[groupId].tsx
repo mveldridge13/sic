@@ -14,6 +14,7 @@ import { PAYID_CURRENCY, useNameOf, useRemoveMember, useSetCoOwner, useTallyData
 import { sendInvite } from '@/lib/invite';
 import { useGroupSummary, type ActivityItem } from '@/store/hooks';
 import { balanceColor, brand, groupColor, groupTint, PRESS_DELAY, radius, space, useColors } from '@/theme';
+import { goBack } from '@/lib/nav';
 
 /**
  * Balance breakdown for one group.
@@ -234,7 +235,7 @@ export default function BalanceBreakdownScreen() {
           {
             text: 'Remove',
             style: 'destructive',
-            onPress: () => removeMember.mutate({ groupId: group.id, userId: otherId }, { onSuccess: () => router.back() }),
+            onPress: () => removeMember.mutate({ groupId: group.id, userId: otherId }, { onSuccess: () => goBack() }),
           },
         ],
       );
