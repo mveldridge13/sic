@@ -125,7 +125,11 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
         waiting
           ? 'A payment is still waiting to be confirmed. Once it’s confirmed and everyone’s square, you can close the group.'
           : `Everyone needs to be settled up before the group can be closed. ${transfers
-              .map((t) => `${name(t.fromUserId)} owes ${name(t.toUserId)} ${money(t.amount)}.`)
+              .map((t) =>
+                t.fromUserId === myId
+                  ? `You owe ${name(t.toUserId)} ${money(t.amount)}.`
+                  : `${name(t.fromUserId)} owes ${t.toUserId === myId ? 'you' : name(t.toUserId)} ${money(t.amount)}.`,
+              )
               .join(' ')}`,
       );
       return;
@@ -253,16 +257,6 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
         {/* The group's card: its colour, icon, people and what's been spent. */}
         <GroupCard group={group} totalSpent={summary.totalSpent} myShare={summary.myShare} onIconPress={() => setSheet('icon')} />
 
-        {closed ? (
-          <Gutter>
-            <Notice tone="info">
-              {`Closed ${new Date(group.closedAt!).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}${
-                group.closedBy ? ` by ${group.closedBy === myId ? 'you' : name(group.closedBy)}` : ''
-              }. Everyone was square, and nothing can be added or changed.${canClose ? ' To add to it again, reopen it from the ⋯ menu.' : ''}`}
-            </Notice>
-          </Gutter>
-        ) : null}
-
         {inviteError ? (
           <Gutter>
             <Notice>{inviteError}</Notice>
@@ -274,7 +268,16 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
           {dueBills.filter((b) => b.groupId === group.id).map((b) => (
             <DueBillCard key={b.id} bill={b} />
           ))}
-          {mine.length === 0 && nothingYet ? (
+          {/* A closed group: its closing message takes the place of "You're all square". */}
+          {closed && mine.length === 0 ? (
+            <AllSquareCard
+              emoji="🔒"
+              title="Group closed"
+              line={`Closed ${new Date(group.closedAt!).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}${
+                group.closedBy ? ` by ${group.closedBy === myId ? 'you' : name(group.closedBy)}` : ''
+              }. Everyone was square, and nothing can be added or changed.${canClose ? ' To add to it again, reopen it from the ⋯ menu.' : ''}`}
+            />
+          ) : mine.length === 0 && nothingYet ? (
             <AllSquareCard emoji="🧾" title="No expenses yet" line="Add an expense and who owes who will show here." />
           ) : mine.length === 0 ? (
             <AllSquareCard

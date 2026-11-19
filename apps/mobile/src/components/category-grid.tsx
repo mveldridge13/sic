@@ -6,9 +6,9 @@
  */
 import { useState, type ReactNode } from 'react';
 import { View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { FadeInDown } from 'react-native-reanimated';
 
-import { Bouncy, buzz } from '@/components/fun';
+import { Bouncy, buzz, SpringIn } from '@/components/fun';
 import { Text } from '@/components/ui';
 import { radius, space, useColors } from '@/theme';
 
@@ -57,8 +57,11 @@ export function CategoryGrid<Id extends string>({
             const faded = !!tapped && !chosen;
             const warm = (r + i) % 2 === 0;
             return (
-              <Animated.View
+              <SpringIn
                 key={t.id}
+                kind="rise"
+                delay={(r * 2 + i) * 40}
+                damping={16}
                 entering={FadeInDown.delay((r * 2 + i) * 40)
                   .springify()
                   .damping(16)}
@@ -90,7 +93,7 @@ export function CategoryGrid<Id extends string>({
                     </Text>
                   ) : null}
                 </Bouncy>
-              </Animated.View>
+              </SpringIn>
             );
           })}
           {/* An odd tile out keeps its half width. */}

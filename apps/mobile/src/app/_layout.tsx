@@ -7,6 +7,7 @@ import { AppState, Platform, useColorScheme } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { OfflineBar } from '@/components/offline-bar';
+import { installWebAlerts, WebAlertHost } from '@/components/web-alert';
 import { useAuth } from '@/lib/auth';
 import { TALLY_KEY } from '@/lib/data';
 import { flushOutbox, forgetCache, setRefresher, whenReconnected } from '@/lib/offline';
@@ -26,6 +27,8 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = 'input:focus, textarea:focus { outline: none; }';
   document.head.appendChild(style);
+  // Alert.alert does nothing in a browser: show sic's own pop-up instead (see web-alert.tsx).
+  installWebAlerts();
 }
 
 // Back online: send what was saved with no signal, then bring everything up to date.
@@ -136,6 +139,7 @@ export default function RootLayout() {
           </Stack>
           {/* Offline, syncing, or something that couldn't sync: a small pill over every screen. */}
           {signedIn ? <OfflineBar /> : null}
+          {Platform.OS === 'web' ? <WebAlertHost /> : null}
         </ThemeProvider>
       </QueryClientProvider>
     </KeyboardProvider>

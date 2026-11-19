@@ -5,10 +5,11 @@
  */
 import { categoryById, guessCategory } from '@/lib/categories';
 import { formatMoney } from '@tally/shared';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import {
   AccessibilityInfo,
   Animated as RNAnimated,
+  Platform,
   Pressable,
   View,
   useWindowDimensions,
@@ -47,6 +48,49 @@ export const buzz = {
   nudge: () => void Haptics?.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}),
   success: () => void Haptics?.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}),
 };
+
+/**
+ * Springs its content in when it first appears: rising from below ("rise") or popping up from small
+ * ("zoom"), after `delay` ms. On phones this is Reanimated's entering animation, passed as
+ * `entering`. In a browser that animation loses its spring (it plays in a straight line), so the
+ * same spring is played by hand there, and New group and the tile grids bounce in the same way.
+ */
+export function SpringIn({
+  entering,
+  kind = 'rise',
+  delay = 0,
+  damping = 14,
+  style,
+  children,
+}: {
+  entering?: ComponentProps<typeof Animated.View>['entering'];
+  kind?: 'rise' | 'zoom';
+  delay?: number;
+  damping?: number;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+}) {
+  const web = Platform.OS === 'web';
+  const reduce = useReducedMotion();
+  const progress = useSharedValue(web && !reduce ? 0 : 1);
+  useEffect(() => {
+    if (web && !reduce) progress.set(withDelay(delay, withSpring(1, { damping, stiffness: 170 })));
+  }, [web, reduce, delay, damping, progress]);
+  const springing = useAnimatedStyle(() => {
+    const t = progress.get();
+    return kind === 'zoom'
+      ? { opacity: Math.min(1, t * 1.6), transform: [{ scale: 0.4 + 0.6 * t }] }
+      : { opacity: Math.min(1, t * 1.4), transform: [{ translateY: (1 - t) * 28 }] };
+  });
+  if (!web) {
+    return (
+      <Animated.View entering={entering} style={style}>
+        {children}
+      </Animated.View>
+    );
+  }
+  return <Animated.View style={[style, springing]}>{children}</Animated.View>;
+}
 
 /** A Pressable that springs down a little when pressed and bounces back. */
 export function Bouncy({

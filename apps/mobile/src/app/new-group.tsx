@@ -2,14 +2,14 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { createGroupSchema } from '@tally/shared';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState, type ReactNode } from 'react';
-import { Alert, BackHandler, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Alert, BackHandler, Linking, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Animated, { FadeIn, FadeInDown, LinearTransition, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { pickContact } from '@/components/contact-name-field';
 import { HeroIconButton } from '@/components/dashboard';
-import { Bouncy, buzz, Confetti } from '@/components/fun';
+import { Bouncy, buzz, Confetti, SpringIn } from '@/components/fun';
 import { SplitPartnerSheet, useSelection } from '@/components/split-partners';
 import { Avatar, Button, Notice, Text } from '@/components/ui';
 import { CURRENCIES, isSupportedCurrency, type Currency } from '@/lib/currencies';
@@ -18,6 +18,7 @@ import { useAddGuest, useAddMembers, useCreateGroup, useSplitPartners, useTallyD
 import { useMyId } from '@/lib/auth';
 import { groupColor, radius, space, type as typeScale, useColors } from '@/theme';
 import { goBack } from '@/lib/nav';
+import { CONTENT_MAX_WIDTH } from '@/lib/layout';
 
 const CURRENCY_INFO: Record<Currency, { symbol: string; name: string }> = {
   AUD: { symbol: 'A$', name: 'Australian dollars' },
@@ -230,23 +231,28 @@ export default function NewGroupScreen() {
     ];
     body = (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.md, paddingHorizontal: space.lg }}>
-        <Animated.View
+        <SpringIn
+          kind="zoom"
+          damping={12}
           entering={ZoomIn.springify().damping(12)}
           style={{ width: 110, height: 110, borderRadius: 34, backgroundColor: c.warm, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ fontSize: 58 }}>{type?.emoji ?? created.name.slice(0, 1).toUpperCase()}</Text>
-        </Animated.View>
-        <Animated.View entering={ZoomIn.delay(100).springify().damping(14)}>
+        </SpringIn>
+        <SpringIn kind="zoom" delay={100} entering={ZoomIn.delay(100).springify().damping(14)}>
           <Text variant="title" style={{ fontSize: 28, lineHeight: 34, textAlign: 'center' }}>
             {created.name} is ready 🎉
           </Text>
-        </Animated.View>
+        </SpringIn>
         <Text muted>
           {faces.length} {faces.length === 1 ? 'person' : 'people'} · {CURRENCY_INFO[currency].name}
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: space.sm }}>
           {faces.slice(0, 10).map((f, i) => (
-            <Animated.View
+            <SpringIn
               key={f.id}
+              kind="zoom"
+              delay={250 + i * 110}
+              damping={10}
               entering={ZoomIn.delay(250 + i * 110)
                 .springify()
                 .damping(10)}
@@ -254,7 +260,7 @@ export default function NewGroupScreen() {
               <View style={{ borderRadius: 30, borderWidth: 3, borderColor: c.bg }}>
                 <Avatar name={f.name} size={54} color={f.id.startsWith('new:') ? c.textMuted : groupColor(f.id)} />
               </View>
-            </Animated.View>
+            </SpringIn>
           ))}
         </View>
         {newPeople.length ? (
@@ -295,8 +301,11 @@ export default function NewGroupScreen() {
                 const faded = type && !chosen;
                 const warm = (row + i) % 2 === 0;
                 return (
-                  <Animated.View
+                  <SpringIn
                     key={t.id}
+                    kind="rise"
+                    delay={(row * 2 + i) * 50}
+                    damping={16}
                     entering={FadeInDown.delay((row * 2 + i) * 50)
                       .springify()
                       .damping(16)}
@@ -326,7 +335,7 @@ export default function NewGroupScreen() {
                         {t.label}
                       </Text>
                     </Bouncy>
-                  </Animated.View>
+                  </SpringIn>
                 );
               })}
             </View>
@@ -621,7 +630,8 @@ export default function NewGroupScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <Stack.Screen options={{ headerShown: false }} />
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      {/* In a browser the page keeps to the same centred column as every other page. */}
+      <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, Platform.OS === 'web' ? { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' } : null]}>
         <View
           style={{
             paddingTop: insets.top + space.md,
