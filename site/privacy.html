@@ -7,10 +7,8 @@
 <meta name="description" content="How sic. collects, uses and protects your information.">
 <meta name="theme-color" content="#605574">
 <link rel="icon" href="favicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+  @font-face { font-family: Inter; font-style: normal; font-weight: 400 800; font-display: swap; src: url(/fonts/inter-latin.woff2) format('woff2'); }
   :root {
     --deep: #605574; --red: #EF4444; --cream: #FAF0EB; --lavender-soft: #F3EEF9; --coral: #E4928A;
     --text: #2F2838; --muted: #6E6478; --surface: #FFFFFF; --line: #E6DDF2; --bg: var(--cream);
@@ -52,6 +50,7 @@
   .hero .sic, .band .sic, header .sic { color: #fff; }
   @media (prefers-color-scheme: dark) { .sic { color: #E6DDF2; } }
 </style>
+
 </head>
 <body>
 
@@ -65,47 +64,58 @@
 <main>
   <div class="wrap">
     <h1>Privacy policy</h1>
-    <p class="updated">Last updated 18 November 2026</p>
+    <p class="updated">Last updated 18 November 2026 · Covers the <span class="sic">sic<span class="sic-dot">.</span></span> app and the sic-app.com website</p>
 
     <div class="summary">
       <p style="margin-top:0"><strong>In short:</strong> <span class="sic">sic<span class="sic-dot">.</span></span> keeps only what it needs to split costs in a group, stores it in Australia, and never sells it or shows you ads.</p>
       <ul>
         <li><strong>What we keep:</strong> your name, email, currency and time zone; the groups you're in; the expenses and payments you add; your PayID if you add one; and receipt photos you scan.</li>
-        <li><strong>What we don't do:</strong> no ads, no selling or renting your information, no tracking or analytics tools, and no access to your bank. <span class="sic">sic<span class="sic-dot">.</span></span> never moves money.</li>
-        <li><strong>Receipt scanning is your choice.</strong> The first time you tap Scan receipt, <span class="sic">sic<span class="sic-dot">.</span></span> asks before any photo is sent to Anthropic to be read. If you decline, scanning stays off and nothing is sent.</li>
+        <li><strong>What we don't do:</strong> no ads, no selling or renting your information, no analytics or tracking tools, and no access to your bank. <span class="sic">sic<span class="sic-dot">.</span></span> never moves money.</li>
+        <li><strong>AI receipt scanning is your choice.</strong> The first time you tap Scan receipt, <span class="sic">sic<span class="sic-dot">.</span></span> asks before any photo is sent to Anthropic's Claude AI to be read. If you decline, nothing is sent.</li>
         <li><strong>Who sees what:</strong> a group's owner and co-owners see everything in that group; other members see the expenses they added or are part of (including the receipt), their own balance and the group total.</li>
       </ul>
     </div>
 
+    <h2>Who we are</h2>
+    <p><span class="sic">sic<span class="sic-dot">.</span></span> ("we", "us") is the app and website at sic-app.com. We're responsible for the personal information described in this policy.</p>
+    <ul>
+      <li><strong>Operated by:</strong> operator details coming soon.</li>
+      <li><strong>Privacy contact:</strong> email address coming soon. Use it for questions, requests to see, correct, copy or delete your information, and complaints.</li>
+    </ul>
+    <p><span class="sic">sic<span class="sic-dot">.</span></span> is available worldwide. We're based in Australia and follow the Australian Privacy Principles. If you live elsewhere, you also have the rights described under <a href="#rights">Your rights</a>.</p>
+
     <h2>What we collect</h2>
-    <p class="lead">Everything below comes from you or from people in your groups. <span class="sic">sic<span class="sic-dot">.</span></span> collects nothing from other apps or websites.</p>
+    <p class="lead">Most of this comes from you or from people in your groups. The rest is technical information that's created when you use <span class="sic">sic<span class="sic-dot">.</span></span></p>
     <div class="table">
       <table>
         <tr><th>Information</th><th>Where it comes from</th><th>Why we keep it</th></tr>
         <tr><td>Name and email address</td><td>You, when you sign up</td><td>To sign you in and show your name to people in your groups</td></tr>
-        <tr><td>Password</td><td>You, when you sign up</td><td>To sign you in; stored only in scrambled (hashed) form</td></tr>
+        <tr><td>Password</td><td>You, when you sign up</td><td>To sign you in; stored only in scrambled (hashed) form, so nobody can read it</td></tr>
         <tr><td>Currency and time zone</td><td>Your phone's region settings, or your choice in Profile</td><td>To show amounts in your currency and add recurring expenses on the right day</td></tr>
         <tr><td>Groups, members and invites</td><td>You and other members</td><td>To run the group</td></tr>
         <tr><td>Expenses, items, splits and notes</td><td>Whoever adds them</td><td>To work out who owes whom</td></tr>
         <tr><td>Payments and their confirmations</td><td>Whoever records or confirms them</td><td>To settle balances</td></tr>
         <tr><td>Edit history</td><td>Made automatically when an expense or payment changes</td><td>So everyone can see what changed and undo mistakes</td></tr>
         <tr><td>PayID and account name</td><td>You, if you add one in Profile</td><td>So members of groups you own can pay you from their banking app</td></tr>
-        <tr><td>A contact's name</td><td>Your phone's contacts, only the one person you pick when adding someone</td><td>To add them to a group as a guest; the rest of your contacts are never read or saved</td></tr>
         <tr><td>Receipt photos</td><td>Your camera or photos, only when you scan a receipt</td><td>To read the receipt and keep it with the expense</td></tr>
         <tr><td>Notifications</td><td>Made by <span class="sic">sic<span class="sic-dot">.</span></span> when something happens in your groups</td><td>To show you updates in the app</td></tr>
         <tr><td>Scan count</td><td>Made when you scan a receipt</td><td>To limit each person to 20 scans a day</td></tr>
+        <tr><td>Technical information: IP address, device and app type, and the time of each request</td><td>Recorded automatically by our hosting providers when the app or website connects to them</td><td>To keep the service running and secure, and to investigate problems and misuse</td></tr>
       </table>
     </div>
+    <p><strong>Your phone's contacts.</strong> If you pick someone from your contacts when adding them to a group, <span class="sic">sic<span class="sic-dot">.</span></span> reads that one contact's name, phone number and email on your phone. Only the name is saved (as a guest in the group). The phone number or email is used on your phone to address the invite in your own Messages or email app, and is never sent to <span class="sic">sic<span class="sic-dot">.</span></span> or stored. The rest of your contacts are never read.</p>
+    <p><strong>On your device.</strong> The app keeps you signed in by storing a sign-in token on your phone. Signing out removes it.</p>
 
     <h2>Receipt scanning uses AI</h2>
     <p class="lead"><span class="sic">sic<span class="sic-dot">.</span></span> uses artificial intelligence (AI) to read receipts: Claude, an AI made by Anthropic. Receipt photos are sent to Anthropic only if you agree when <span class="sic">sic<span class="sic-dot">.</span></span> asks.</p>
     <ul>
-      <li><strong>You're asked first.</strong> The first time you tap Scan receipt, <span class="sic">sic<span class="sic-dot">.</span></span> explains that the photo will be sent to Anthropic to be read, and asks you to <strong>Accept</strong> or <strong>Decline</strong>.</li>
-      <li><strong>If you accept:</strong> each photo you scan is sent to Anthropic, where the Claude AI reads the shop, date, total and items and sends them back to fill in the expense. It's read automatically by the AI, not by a person. Only the photo is sent, not your name, email or group.</li>
+      <li><strong>You're asked first.</strong> The first time you tap Scan receipt, <span class="sic">sic<span class="sic-dot">.</span></span> explains that the photo will be sent to Anthropic to be read, and asks you to <strong>Accept</strong> or <strong>Decline</strong>. This is a separate choice, not part of signing up.</li>
+      <li><strong>If you accept:</strong> the photo is saved to <span class="sic">sic<span class="sic-dot">.</span></span>'s storage, then <span class="sic">sic<span class="sic-dot">.</span></span>'s server sends it to Anthropic, where the Claude AI reads the shop, date, total and items and sends them back to fill in the expense. It's read automatically by the AI, not by a person.</li>
+      <li><strong>What Anthropic receives:</strong> the receipt image, sent from <span class="sic">sic<span class="sic-dot">.</span></span>'s server rather than from your phone. We don't send your name, email, group or account details, and Anthropic doesn't receive your phone's IP address. Anything visible in the photo, like a card number or a face, is sent too, so photograph just the receipt.</li>
+      <li><strong>What Anthropic does with it:</strong> under Anthropic's commercial terms it doesn't use the images to train its AI. Anthropic says it deletes them within 30 days, unless its automated safety systems flag the request (then it can keep it for longer to enforce its usage policy) or the law requires otherwise.</li>
       <li><strong>Check what the AI fills in.</strong> AI can misread a receipt, so the amounts are yours to check and change before you save. Nothing is decided for you.</li>
       <li><strong>If you decline:</strong> nothing is sent, and receipt scanning is turned off for you. You can still add expenses by typing them in.</li>
-      <li><strong>The photo stays with the expense</strong> in <span class="sic">sic<span class="sic-dot">.</span></span>'s storage, so people who can see the expense can check it. If you close the form without saving, the photo is deleted.</li>
-      <li><strong>Only photograph the receipt.</strong> Anything else in the photo, like a card number or a face, is sent too.</li>
+      <li><strong>If a scan fails or you don't save:</strong> the photo is deleted from <span class="sic">sic<span class="sic-dot">.</span></span>'s storage when you close the form without saving.</li>
     </ul>
     <p><strong>Change your mind any time</strong> in Profile → Receipt scanning: On sends photos when you scan, Off stops it. Turning it off doesn't delete photos already saved with expenses; remove those as below.</p>
 
@@ -113,7 +123,7 @@
     <ul>
       <li><strong>Keep the expense, delete the photo:</strong> open the expense and tap <strong>Remove photo</strong>. The photo is deleted for good and the expense stays as it is.</li>
       <li><strong>Delete the expense:</strong> its receipt photo is deleted for good along with it.</li>
-      <li><strong>Who can do it:</strong> the person who added the expense, and the group's owner and co-owners. Other people in the split can see the photo but can't remove it; ask one of them.</li>
+      <li><strong>Who can do it:</strong> the person who added the expense, and the group's owner and co-owners. Other people in the split can see the photo but can't remove it; ask one of them, or contact us.</li>
     </ul>
 
     <h2>Who can see your information in <span class="sic">sic<span class="sic-dot">.</span></span></h2>
@@ -128,34 +138,92 @@
         <tr><td>Everyone in the group</td><td>Each member's name</td></tr>
       </table>
     </div>
-    <p>Your PayID is shown only to members of groups you own; it's never shown in groups where you are a member. The people who run <span class="sic">sic<span class="sic-dot">.</span></span> can reach the database to keep the service running, but don't look at your information unless you ask for help or the law requires it.</p>
+    <p>These rules are enforced by the database itself, not just hidden in the app. The people who run <span class="sic">sic<span class="sic-dot">.</span></span> can reach the database to keep the service running, but don't look at your information unless you ask for help, it's needed to investigate a problem or misuse, or the law requires it.</p>
+
+    <h2>PayID and money</h2>
+    <ul>
+      <li><span class="sic">sic<span class="sic-dot">.</span></span> <strong>tracks</strong> shared costs. It doesn't move money, process payments or start bank transfers.</li>
+      <li><span class="sic">sic<span class="sic-dot">.</span></span> never asks for or receives your bank login details, and has no access to your bank account.</li>
+      <li><span class="sic">sic<span class="sic-dot">.</span></span> doesn't check with any bank whether a payment was made. A payment counts once the person receiving it confirms it in the app (or records it themselves).</li>
+      <li>Adding a PayID is optional. It's shown only to members of groups you own, never in groups where you're a member, and you can remove it in Profile at any time.</li>
+    </ul>
+
+    <h2>People who don't use <span class="sic">sic<span class="sic-dot">.</span></span></h2>
+    <p>Members can add someone to a group by name, as a guest, before that person has an account. For a guest we keep only the name a member typed or picked, and the expenses and payments recorded for them. Their phone number or email is never stored (see <em>Your phone's contacts</em> above). When a guest joins with an invite link, their share becomes part of their own account. If you're a guest and want your name removed, ask the group's owner to remove you, or contact us.</p>
 
     <h2>Who we share it with</h2>
-    <p class="lead"><span class="sic">sic<span class="sic-dot">.</span></span> runs on two outside services and shares nothing with anyone else, unless the law requires it.</p>
+    <p class="lead">We share information only with the services that run <span class="sic">sic<span class="sic-dot">.</span></span>, and never sell it or use it for advertising.</p>
     <div class="table">
       <table>
         <tr><th>Service</th><th>What it does for <span class="sic">sic<span class="sic-dot">.</span></span></th><th>What it receives</th><th>Where</th></tr>
-        <tr><td>Supabase</td><td>Stores <span class="sic">sic<span class="sic-dot">.</span></span>'s database and receipt photos, signs you in and sends sign-in emails</td><td>Everything listed under What we collect</td><td>Sydney, Australia</td></tr>
-        <tr><td>Anthropic</td><td>Reads receipt photos, only for people who accepted</td><td>The receipt photo, nothing else</td><td>Outside Australia</td></tr>
+        <tr><td>Supabase</td><td>Stores <span class="sic">sic<span class="sic-dot">.</span></span>'s database and receipt photos, signs you in, sends sign-in emails, and runs the receipt-scanning step on its servers</td><td>Everything listed under What we collect</td><td>Data stored in Sydney, Australia; see below</td></tr>
+        <tr><td>Anthropic</td><td>Reads receipt photos with its Claude AI, only for people who accepted</td><td>The receipt image, nothing else</td><td>United States and other countries outside Australia</td></tr>
+        <tr><td>Vercel</td><td>Hosts the sic-app.com website</td><td>Technical information from website visits (IP address, browser type, pages requested)</td><td>A worldwide network, including outside Australia</td></tr>
       </table>
     </div>
-    <p>Because Anthropic is outside Australia, a scanned photo leaves the country. That's part of what you agree to when you accept receipt scanning.</p>
+    <p>We may also disclose information if the law requires it (for example, a valid request from a court or government agency), to protect people's safety, or to investigate fraud or misuse of <span class="sic">sic<span class="sic-dot">.</span></span> If <span class="sic">sic<span class="sic-dot">.</span></span> is ever sold or merged, your information would pass to the new owner under this policy, and we'd tell you first.</p>
 
-    <h2>Keeping and deleting, and your choices</h2>
-    <p class="lead">Shared records stay as long as the group needs them to keep balances right. You can delete your own account at any time.</p>
+    <h2>Information that leaves Australia</h2>
+    <p>Your <span class="sic">sic<span class="sic-dot">.</span></span> data is stored in Sydney. Some processing happens elsewhere:</p>
+    <ul>
+      <li><strong>Receipt scanning:</strong> accepted receipt photos are sent to Anthropic in the United States, and may be processed in other countries where Anthropic operates.</li>
+      <li><strong>Server steps and support:</strong> our providers' servers that run parts of <span class="sic">sic<span class="sic-dot">.</span></span> (such as the receipt-scanning step) usually run in the region nearest you, and their support and security staff may access systems from other countries when needed.</li>
+      <li><strong>Website:</strong> visits to sic-app.com are served from Vercel's worldwide network.</li>
+    </ul>
+    <p>We choose providers that protect information with security and confidentiality commitments. If you're outside Australia, your information is transferred to Australia (and the countries above) to provide <span class="sic">sic<span class="sic-dot">.</span></span> to you.</p>
+
+    <h2>How we protect your information</h2>
+    <ul>
+      <li>All connections between the app, the website and our servers are encrypted (HTTPS/TLS).</li>
+      <li>Our database host, Supabase, encrypts stored data, including receipt photos and backups.</li>
+      <li>Passwords are stored only in hashed form.</li>
+      <li>Database access rules decide who can see each expense, payment, PayID and photo, so other users can't reach information the app doesn't show them.</li>
+      <li>Access to the systems behind <span class="sic">sic<span class="sic-dot">.</span></span> is limited to the people who run it, with secret keys kept out of the app.</li>
+    </ul>
+    <p><strong>If something goes wrong:</strong> if a data breach is likely to cause serious harm, we'll tell the people affected and the Office of the Australian Information Commissioner (and any other regulator where the law requires it) as soon as we can, and explain what happened and what to do.</p>
+
+    <h2>Keeping and deleting</h2>
+    <p class="lead">Shared records stay as long as the group needs them to keep balances right. Your own account can be deleted at any time.</p>
     <ul>
       <li><strong>Deleted expenses and payments</strong> disappear from the group, but a copy of the details stays in the edit history so balances can be checked and mistakes undone. A deleted expense's receipt photo is deleted for good.</li>
       <li><strong>Leaving a group</strong> keeps your past expenses and payments in it, because the other members' balances depend on them. Your notifications stay too.</li>
-      <li><strong>Deleting your account:</strong> in the app, go to Profile → Security → Delete account. You'll need to be settled up in every group first, so nobody is left out of pocket. Your login, PayID, settings and notifications are deleted, and groups you own pass to another member. Your name stays on shared expenses and payments so each group's history still adds up, and so do receipt photos attached to them. To delete those too, remove them from the expenses before you delete your account.</li>
-      <li><strong>Your choices:</strong> decline receipt scanning; remove your PayID in Profile; leave any group; turn off <span class="sic">sic<span class="sic-dot">.</span></span>'s access to your camera, photos or contacts in your phone's settings at any time.</li>
-      <li><strong>Your rights:</strong> under Australian privacy law you can ask to see the information we hold about you and ask us to correct it. Contact us and we'll reply within 30 days.</li>
+      <li><strong>Technical logs</strong> kept by our hosting providers are kept only for a short time, then deleted automatically.</li>
     </ul>
 
-    <h2>Contact and changes</h2>
+    <h3>Deleting your account</h3>
+    <p>In the app, go to <strong>Profile → Security → Delete account</strong> and confirm with your password. It takes effect straight away.</p>
     <ul>
-      <li><strong>Contact:</strong> email address coming soon. If you're not happy with our answer, you can complain to the <a href="https://www.oaic.gov.au/">Office of the Australian Information Commissioner (OAIC)</a>.</li>
-      <li><strong>Changes:</strong> if this policy changes in a way that affects you, <span class="sic">sic<span class="sic-dot">.</span></span> will tell you in the app before the change applies. Sending receipt photos anywhere new would mean asking you again.</li>
+      <li><strong>Settle up first.</strong> You can delete once you don't owe and aren't owed money in any group, so nobody is left out of pocket. If a balance can't be settled or is in dispute, contact us and we'll help work it out.</li>
+      <li><strong>Deleted straight away:</strong> your login (email, password and sessions), PayID, notifications, groups you've put away, scan count, time zone and receipt-scanning choice. You're removed from every group, payments waiting on you are cancelled, your open invites stop working and recurring expenses you pay are stopped.</li>
+      <li><strong>Groups you own</strong> pass to a co-owner, or to the longest-standing member with an account. A group with nobody else who has an account is closed.</li>
+      <li><strong>What stays, and why:</strong> your name, and the expenses, payments and receipt photos in shared groups, stay so the other members' history and balances still add up. Your name isn't replaced with an anonymous label. To delete receipt photos too, remove them from the expenses before you delete your account.</li>
+      <li><strong>Backups:</strong> copies in our hosting provider's backups are deleted automatically as those backups expire.</li>
+      <li><strong>Can't use the app?</strong> Contact us and we'll delete your account for you.</li>
+      <li>We may keep information longer if the law requires it or it's needed to resolve a dispute or investigate misuse.</li>
     </ul>
+
+    <h2 id="rights">Your rights</h2>
+    <ul>
+      <li><strong>See and correct:</strong> you can change your name, currency and PayID in Profile, and ask us for a copy of the information we hold about you (account details, groups, expenses, payments, receipt photos and PayID) or to correct it.</li>
+      <li><strong>Delete:</strong> delete your account in the app, or ask us to.</li>
+      <li><strong>Withdraw consent:</strong> turn receipt scanning off in Profile; turn off <span class="sic">sic<span class="sic-dot">.</span></span>'s access to your camera, photos or contacts in your phone's settings at any time.</li>
+      <li><strong>Leave:</strong> leave any group, or remove your PayID, whenever you like.</li>
+    </ul>
+    <p>We'll reply to requests within 30 days, and won't charge you for them. We may need to confirm it's really you first.</p>
+    <p><strong>If you're in the European Union, the UK or a similar region</strong>, you also have the right to ask us to restrict or stop processing, to object to it, and to receive your data in a portable format. We process your information to provide the service you signed up for, with your consent for receipt scanning (which you can withdraw at any time), and for our legitimate interest in keeping <span class="sic">sic<span class="sic-dot">.</span></span> secure. You can complain to your local data protection authority.</p>
+    <p><strong>If you're in California or another US state with privacy laws</strong>, we don't sell or share your personal information for advertising, and you can ask to know, correct or delete the information we hold. We won't treat you differently for using these rights.</p>
+
+    <h2>Children</h2>
+    <p><span class="sic">sic<span class="sic-dot">.</span></span> is for people aged 16 and over. We don't knowingly collect information from anyone younger. If we learn that someone under 16 has an account, we'll delete it. If you think a child is using <span class="sic">sic<span class="sic-dot">.</span></span>, please contact us.</p>
+
+    <h2>Cookies and tracking</h2>
+    <p>The sic-app.com website doesn't use cookies, analytics or advertising trackers, and doesn't load anything from other companies. The app doesn't use advertising IDs or tracking tools. Our hosting providers keep the technical logs described above.</p>
+
+    <h2>Complaints</h2>
+    <p>Please contact us first and we'll respond within 30 days. If you're not happy with our answer, you can complain to the <a href="https://www.oaic.gov.au/">Office of the Australian Information Commissioner (OAIC)</a>, or to the privacy regulator where you live.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes in a way that affects you, <span class="sic">sic<span class="sic-dot">.</span></span> will tell you in the app before the change applies, and update the date at the top. Sending receipt photos anywhere new would mean asking you again.</p>
   </div>
 </main>
 
