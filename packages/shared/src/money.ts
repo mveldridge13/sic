@@ -49,9 +49,21 @@ export function centsToDecimalString(cents: Cents): string {
   return `${sign}${whole}.${fraction}`;
 }
 
-/** Format cents for display using Intl, e.g. formatMoney(12550, 'USD') -> "$125.50". */
+/** Currencies with no minor unit (¥1 is the smallest amount). Kept in step with currency.ts. */
+const NO_DECIMALS = new Set(['JPY', 'KRW', 'ISK', 'VND', 'CLP', 'PYG', 'UGX', 'XAF', 'XOF']);
+
+/**
+ * Format minor units for display using Intl, e.g. formatMoney(12550, 'USD') -> "$125.50" and
+ * formatMoney(1250, 'JPY') -> "¥1,250".
+ */
 export function formatMoney(cents: Cents, currency: string, locale?: string): string {
   assertCents(cents);
-  // Dividing by 100 for display only; the result is never stored or used in arithmetic.
-  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(cents / 100);
+  const decimals = NO_DECIMALS.has(currency) ? 0 : 2;
+  // Dividing for display only; the result is never stored or used in arithmetic.
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(cents / 10 ** decimals);
 }

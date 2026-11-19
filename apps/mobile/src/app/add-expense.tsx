@@ -1,12 +1,19 @@
 import {
   centsToDecimalString,
   computeSplit,
+  convertMinor,
+  convertSplit,
+  currencyDecimals,
   FULL_PERCENT_BPS,
   formatMoney,
+  inferConvertedItemsRest,
   inferItemsRest,
   itemsSubtotal,
   type ItemsRest,
+  moneyToDecimalString,
+  parseMoney,
   parseToCents,
+  rateFromAmounts,
   SplitError,
   type SplitInput,
   type SplitMethod,
@@ -25,6 +32,7 @@ import { useMyId } from '@/lib/auth';
 import {
   completeRecurringDue,
   useCreateExpense,
+  useExchangeRate,
   useCreateRecurring,
   goneFromSplit,
   useNameOf,
@@ -36,11 +44,13 @@ import {
   useUpdateExpense,
   useUpdateRecurring,
   type Expense,
+  type ExpenseOriginal,
   type RecurringDue,
   type RecurringExpense,
   type SavedSplit,
 } from '@/lib/data';
 import { formFromSaved, savedFromForm } from '@/lib/saved-splits';
+import { canPayIn, PAY_CURRENCIES } from '@/lib/currencies';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
 import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
@@ -142,6 +152,9 @@ function initialFromSplit(split: SplitInput, memberIds: string[]) {
 function initialFromExpense(expense: Expense | undefined, memberIds: string[], name: (id: string) => string) {
   const blank = { method: 'equal' as FormMethod, included: {}, values: {}, items: [newItem()], rest: 'equal' as ItemsRest };
   if (!expense) return blank;
+  // Paid in another currency: item prices and Amounts were typed (and are shown) in that currency.
+  const paid = expense.original;
+  const money = (minor: number) => (paid ? moneyToDecimalString(minor, paid.currency) : centsToDecimalString(minor));
   const inSplit = new Map(expense.splits.map((s) => [s.userId, s]));
   const included: Record<string, boolean> = {};
   const values: Record<string, string> = {};
@@ -151,18 +164,20 @@ function initialFromExpense(expense: Expense | undefined, memberIds: string[], n
     if (!s) continue;
     if (expense.method === 'percentage' && s.weight != null) values[id] = centsToDecimalString(s.weight).replace(/\.00$/, '');
     if (expense.method === 'shares' && s.weight != null) values[id] = String(s.weight);
-    if (expense.method === 'exact') values[id] = centsToDecimalString(s.amount);
+    if (expense.method === 'exact') values[id] = paid && s.weight != null ? money(s.weight) : centsToDecimalString(s.amount);
   }
   const toRow = (rowName: string, amount: number, userIds: string[]): ItemRow => ({
     key: nextItemKey++,
     name: rowName,
-    price: centsToDecimalString(amount),
+    price: money(amount),
     userIds,
   });
   switch (expense.method) {
     case 'items': {
       const items = expense.items ?? [];
-      const { rest, participants } = inferItemsRest(expense.amount, items, expense.splits);
+      const { rest, participants } = paid
+        ? inferConvertedItemsRest(expense.amount, paid.amount, items, expense.splits)
+        : inferItemsRest(expense.amount, items, expense.splits);
       // Ticked = shares everything else.
       for (const id of memberIds) included[id] = participants.includes(id);
       return {
@@ -188,6 +203,9 @@ function initialFromExpense(expense: Expense | undefined, memberIds: string[], n
       return { ...blank, method: expense.method as FormMethod, included, values };
   }
 }
+
+/** A rate for showing: "0.00931", "107.31", "0.6137". */
+const showRate = (rate: number) => String(Number(rate.toPrecision(rate < 1 ? 4 : 6)));
 
 // ─── Small themed controls ───────────────────────────────────────────────────
 
@@ -357,8 +375,34 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
   );
   const [description, setDescription] = useState(editing?.description ?? fromSaved?.description ?? '');
   const [amountText, setAmountText] = useState(
-    editing ? centsToDecimalString(editing.amount) : schedule?.amount ? centsToDecimalString(schedule.amount) : '',
+    editing?.original
+      ? moneyToDecimalString(editing.original.amount, editing.original.currency)
+      : editing
+        ? centsToDecimalString(editing.amount)
+        : schedule?.amount
+          ? centsToDecimalString(schedule.amount)
+          : '',
   );
+  // The currency it was paid in: null = the group's own. Another currency is converted into the
+  // group's at a rate that's locked when the expense is saved.
+  const [paidIn, setPaidIn] = useState<string | null>(editing?.original?.currency ?? null);
+  // An expense being edited keeps its rate unless the currency changes or someone types a new one.
+  const [lockedRate, setLockedRate] = useState<Pick<ExpenseOriginal, 'rate' | 'rateDate' | 'source'> | null>(
+    editing?.original && editing.original.source === 'ecb' ? editing.original : null,
+  );
+  // auto: today's rate (or the locked one) · manual: a typed rate · bank: what the bank charged.
+  const [rateMode, setRateMode] = useState<'auto' | 'manual' | 'bank'>(
+    editing?.original?.source === 'manual' ? 'manual' : editing?.original?.source === 'bank' ? 'bank' : 'auto',
+  );
+  const [rateText, setRateText] = useState(editing?.original?.source === 'manual' ? showRate(editing.original.rate) : '');
+  const [bankText, setBankText] = useState(editing?.original?.source === 'bank' ? centsToDecimalString(editing.amount) : '');
+  function payIn(code: string | null) {
+    setPaidIn(code);
+    setLockedRate(null);
+    setRateMode('auto');
+    setRateText('');
+    setBankText('');
+  }
   const [payerId, setPayerId] = useState(editing?.payerId ?? fromSaved?.payerId ?? myId);
   // Recurring: off for a one-off expense; a schedule being edited starts from its own settings.
   const [recurring, setRecurring] = useState<RecurringForm>(() =>
@@ -413,6 +457,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setReceiptPath(null);
     setScanNote(null);
     setGroupId(id);
+    payIn(null);
     setPayerId(myId);
     setIncluded({});
     setValues({});
@@ -437,10 +482,10 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setSeenNewGroup(params.newGroupId);
     pickGroup(params.newGroupId);
   }
-  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | 'consent' | null>(null);
+  const [sheet, setSheet] = useState<'split' | 'group' | 'recurring' | 'scan' | 'consent' | 'currency' | 'rate' | null>(null);
   // Close the keyboard (and wait until it's gone) before a sheet slides up. Otherwise the keyboard
   // closing tugs the sheet back down mid-slide, which shows as a flicker.
-  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan' | 'consent') => {
+  const openSheet = async (name: 'split' | 'group' | 'recurring' | 'scan' | 'consent' | 'currency' | 'rate') => {
     if (KeyboardController.isVisible()) await KeyboardController.dismiss();
     setSheet(name);
   };
@@ -460,17 +505,25 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       setReceiptPath(path);
       const read = await scanReceipt(path);
       if (read.merchant && !description.trim()) setDescription(read.merchant);
-      if (read.total) setAmountText(centsToDecimalString(read.total));
+      // A receipt in another currency we have rates for is entered in that currency and converted.
+      const convert = !!read.currency && read.currency !== group.currency && canPayIn(read.currency);
+      const receiptCurrency = convert ? read.currency! : group.currency;
+      if (convert) payIn(read.currency);
+      if (read.total) setAmountText(moneyToDecimalString(read.total, receiptCurrency));
       if (read.items.length > 0) {
         setMethod('items');
-        setItems(read.items.map((i) => ({ key: nextItemKey++, name: i.name, price: centsToDecimalString(i.amount), userIds: [] })));
+        setItems(
+          read.items.map((i) => ({ key: nextItemKey++, name: i.name, price: moneyToDecimalString(i.amount, receiptCurrency), userIds: [] })),
+        );
         // Tax, tip and service charge are shared in proportion to what each person had.
         setRest('proportional');
       }
       const notes = [
-        read.currency && read.currency !== group.currency
-          ? `This receipt looks like it’s in ${read.currency}, but ${group.name} uses ${group.currency}. Amounts haven’t been converted.`
-          : null,
+        convert
+          ? `This receipt is in ${read.currency}, so it’s converted into ${group.currency} at today’s rate. Tap the rate to change it.`
+          : read.currency && read.currency !== group.currency
+            ? `This receipt looks like it’s in ${read.currency}, which sic can’t convert yet. Amounts haven’t been converted.`
+            : null,
         !read.total ? 'Couldn’t find the total. Please enter it.' : null,
         read.items.length > 0 ? 'Check the items, then tap who had each one.' : 'Couldn’t read the items. Choose how to split it below.',
       ].filter(Boolean);
@@ -512,13 +565,51 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
   const participantIds = members.filter(isIncluded);
   const participantKey = participantIds.join(',');
 
-  const amount = useMemo(() => {
+  // What was paid, in that currency's smallest unit.
+  const cur = paidIn && group && paidIn !== group.currency ? paidIn : (group?.currency ?? 'USD');
+  const foreign = !!group && cur !== group.currency;
+  const paidAmount = useMemo(() => {
     try {
-      return amountText ? parseToCents(amountText) : 0;
+      return amountText ? parseMoney(amountText, cur) : 0;
     } catch {
       return NaN;
     }
-  }, [amountText]);
+  }, [amountText, cur]);
+  const fx = useExchangeRate(foreign ? cur : undefined, group?.currency);
+  // The rate to use, or why there isn't one yet, and the amount in the group's currency: what
+  // everyone's shares and balances use.
+  const { rateInfo, rateProblem, amount } = useMemo((): {
+    rateInfo: Pick<ExpenseOriginal, 'rate' | 'rateDate' | 'source'> | null;
+    rateProblem: string | null;
+    amount: number;
+  } => {
+    if (!foreign || !group) return { rateInfo: null, rateProblem: null, amount: paidAmount };
+    const none = (problem: string) => ({ rateInfo: null, rateProblem: problem, amount: NaN });
+    const at = (info: Pick<ExpenseOriginal, 'rate' | 'rateDate' | 'source'>) => ({
+      rateInfo: info,
+      rateProblem: null,
+      amount: Number.isFinite(paidAmount) ? convertMinor(paidAmount, cur, group.currency, info.rate) : NaN,
+    });
+    if (rateMode === 'manual') {
+      const typed = Number(rateText.trim().replace(',', '.'));
+      return Number.isFinite(typed) && typed > 0 ? at({ rate: typed, rateDate: null, source: 'manual' }) : none('Type the exchange rate, or use today’s rate.');
+    }
+    if (rateMode === 'bank') {
+      try {
+        const bank = parseToCents(bankText);
+        if (!(bank > 0 && paidAmount > 0)) return none(`Type what your bank charged in ${group.currency}.`);
+        // The bank's amount is used exactly; the rate is worked out from it.
+        return { rateInfo: { rate: rateFromAmounts(paidAmount, cur, bank, group.currency), rateDate: null, source: 'bank' }, rateProblem: null, amount: bank };
+      } catch {
+        return none(`Check what your bank charged in ${group.currency}.`);
+      }
+    }
+    if (lockedRate) return at(lockedRate);
+    if (fx.data) return at({ rate: fx.data.rate, rateDate: fx.data.date, source: 'ecb' });
+    return none(fx.isError ? 'Couldn’t get today’s exchange rate. Tap the rate to type it.' : 'Getting today’s exchange rate…');
+  }, [foreign, group, paidAmount, cur, rateMode, rateText, bankText, lockedRate, fx.data, fx.isError]);
+  // Amounts and item prices are typed in what was paid; the split is worked out on that.
+  const splitTotal = foreign ? paidAmount : amount;
 
   const splitInput = useMemo((): SplitInput | string => {
     try {
@@ -528,7 +619,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
         case 'exact':
           return {
             method,
-            shares: participantIds.map((userId) => ({ userId, amount: parseToCents(values[userId] || '0') })),
+            shares: participantIds.map((userId) => ({ userId, amount: parseMoney(values[userId] || '0', cur) })),
           };
         case 'percentage':
           // "33.33" -> 3333 basis points, using the same exact decimal parser as money.
@@ -553,7 +644,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
             method,
             items: items.map((item, i) => ({
               name: item.name.trim() || `Item ${i + 1}`,
-              amount: parseToCents(item.price || '0'),
+              amount: parseMoney(item.price || '0', cur),
               userIds: members.filter((id) => item.userIds.includes(id)),
             })),
             rest,
@@ -564,21 +655,21 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       return 'Check the numbers you entered.';
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participantKey, method, values, items, members, rest]);
+  }, [participantKey, method, values, items, members, rest, cur]);
 
   const preview: Preview = useMemo(() => {
     if (!Number.isFinite(amount)) return { ok: false, error: 'Enter a valid amount, like 12.50.' };
     if (amount <= 0) return { ok: false, error: 'Enter an amount.' };
     if (typeof splitInput === 'string') return { ok: false, error: splitInput };
     try {
-      return { ok: true, shares: computeSplit(amount, splitInput) };
+      return { ok: true, shares: foreign ? convertSplit(amount, paidAmount, splitInput) : computeSplit(amount, splitInput) };
     } catch (e) {
       return {
         ok: false,
         error: e instanceof SplitError ? e.message : 'This split doesn’t add up.',
       };
     }
-  }, [amount, splitInput]);
+  }, [amount, splitInput, foreign, paidAmount]);
 
   /** "20% left to assign" for percentage splits, "$5.00 left to assign" for amounts; items that come to more than the total. */
   const remaining = useMemo(() => {
@@ -590,24 +681,22 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       const pct = centsToDecimalString(Math.abs(left)).replace(/\.00$/, '');
       return left > 0 ? `${pct}% left to assign` : `${pct}% too much assigned`;
     }
-    if (splitInput.method === 'exact' && Number.isFinite(amount) && amount > 0) {
-      const left = amount - splitInput.shares.reduce((a, s) => a + s.amount, 0);
+    if (splitInput.method === 'exact' && Number.isFinite(splitTotal) && splitTotal > 0) {
+      const left = splitTotal - splitInput.shares.reduce((a, s) => a + s.amount, 0);
       if (left === 0) return null;
-      return left > 0
-        ? `${formatMoney(left, group.currency)} left to assign`
-        : `${formatMoney(-left, group.currency)} too much assigned`;
+      return left > 0 ? `${formatMoney(left, cur)} left to assign` : `${formatMoney(-left, cur)} too much assigned`;
     }
-    if (splitInput.method === 'items' && Number.isFinite(amount) && amount > 0) {
-      const over = itemsSubtotal(splitInput.items) - amount;
-      return over > 0 ? `Items come to ${formatMoney(over, group.currency)} more than the total` : null;
+    if (splitInput.method === 'items' && Number.isFinite(splitTotal) && splitTotal > 0) {
+      const over = itemsSubtotal(splitInput.items) - splitTotal;
+      return over > 0 ? `Items come to ${formatMoney(over, cur)} more than the total` : null;
     }
     return null;
-  }, [splitInput, amount, group]);
+  }, [splitInput, splitTotal, group, cur]);
 
   /** For an items split: what the items come to, and what's left over for everything else. */
   const itemTotals =
     typeof splitInput !== 'string' && splitInput.method === 'items'
-      ? { items: itemsSubtotal(splitInput.items), extra: Number.isFinite(amount) ? amount - itemsSubtotal(splitInput.items) : 0 }
+      ? { items: itemsSubtotal(splitInput.items), extra: Number.isFinite(splitTotal) ? splitTotal - itemsSubtotal(splitInput.items) : 0 }
       : null;
 
   const title = isEdit ? 'Edit expense' : schedule ? 'Edit recurring' : 'New expense';
@@ -629,7 +718,11 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     ? 'Choose a group'
     : needsAmount && !amountText
       ? 'Enter an amount'
-      : typeof splitInput === 'string'
+      : foreign && (recurring.on || schedule)
+        ? `Recurring expenses use the group’s currency (${group.currency}) for now`
+        : foreign && rateProblem
+          ? rateProblem
+          : typeof splitInput === 'string'
         ? splitInput
         : needsAmount && !preview.ok
           ? (remaining ?? preview.error)
@@ -661,6 +754,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       payerId,
       split: splitInput,
       occurredAt: editing?.occurredAt ?? new Date().toISOString(),
+      original: foreign && rateInfo ? { currency: cur, amount: paidAmount, ...rateInfo } : null,
     };
     if (editing) {
       updateExpense.mutate({ ...input, expenseId: editing.id }, { onSuccess: () => router.back() });
@@ -798,19 +892,27 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
 
       {/* Big amount entry */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: space.xl }}>
-        <Text style={{ fontSize: 40, fontWeight: '700', color: onDeepMuted, marginRight: space.xs }}>
-          {group ? currencySymbol(group.currency) : ''}
-        </Text>
+        {/* Tap the currency to say it was paid in another one (not for recurring expenses yet). */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Paid in ${cur}. Change currency`}
+          disabled={!group || recurring.on || !!schedule}
+          onPress={() => void openSheet('currency')}
+          hitSlop={8}
+          style={{ flexDirection: 'row', alignItems: 'center', marginRight: space.xs }}>
+          <Text style={{ fontSize: 40, fontWeight: '700', color: onDeepMuted }}>{group ? currencySymbol(cur) : ''}</Text>
+          {group && !recurring.on && !schedule ? <Text style={{ fontSize: 16, color: onDeepMuted, marginLeft: 2 }}>▾</Text> : null}
+        </Pressable>
         <TextInput
           value={amountText}
           onChangeText={setAmountText}
-          placeholder="0.00"
+          placeholder={currencyDecimals(cur) === 0 ? '0' : '0.00'}
           placeholderTextColor="rgba(255,255,255,0.35)"
           ref={amountRef}
           keyboardType="decimal-pad"
           selectionColor={brand.accent}
           cursorColor={brand.accent}
-          accessibilityLabel={`Amount${group ? ` in ${group.currency}` : ''}`}
+          accessibilityLabel={`Amount${group ? ` in ${cur}` : ''}`}
           style={{
             fontSize: 56,
             fontWeight: '800',
@@ -823,6 +925,29 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
           }}
         />
       </View>
+
+      {/* Paid in another currency: what it comes to in the group's, and at what rate. */}
+      {foreign && group ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void openSheet('rate')}
+          style={{ alignSelf: 'center', marginTop: space.sm, paddingVertical: 6, paddingHorizontal: space.md, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.1)' }}>
+          <Text variant="label" color={brand.onDeep} style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>
+            {rateInfo
+              ? `${Number.isFinite(amount) && amount > 0 ? `= ${formatMoney(amount, group.currency)} · ` : ''}1 ${cur} = ${showRate(rateInfo.rate)} ${group.currency}`
+              : rateProblem}
+          </Text>
+          <Text variant="caption" color={onDeepMuted} style={{ textAlign: 'center' }}>
+            {rateInfo?.source === 'manual'
+              ? 'Your rate · Change'
+              : rateInfo?.source === 'bank'
+                ? 'From what your bank charged · Change'
+                : rateInfo
+                  ? `European Central Bank rate${rateInfo.rateDate ? `, ${new Date(`${rateInfo.rateDate}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''} · Change`
+                  : 'Tap to type the rate'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       {canScan ? (
         <View style={{ alignItems: 'center', marginTop: space.md }}>
@@ -1030,7 +1155,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                         borderRadius: radius.sm,
                         paddingHorizontal: space.sm,
                       }}>
-                      <Text muted>{group ? currencySymbol(group.currency) : ''}</Text>
+                      <Text muted>{group ? currencySymbol(cur) : ''}</Text>
                       <TextInput
                         value={item.price}
                         onChangeText={(v) => updateItem(item.key, { price: v })}
@@ -1100,7 +1225,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                         Everything else
                       </Text>
                       <Text variant="heading" style={{ fontVariant: ['tabular-nums'] }}>
-                        {formatMoney(itemTotals.extra, group.currency)}
+                        {formatMoney(itemTotals.extra, cur)}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs }}>
@@ -1115,7 +1240,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                   </Card>
                 ) : (
                   <Text variant="caption" muted style={{ textAlign: 'center' }}>
-                    Items {formatMoney(itemTotals.items, group.currency)} · nothing left over
+                    Items {formatMoney(itemTotals.items, cur)} · nothing left over
                   </Text>
                 )
               ) : null}
@@ -1162,7 +1287,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
                           borderRadius: radius.sm,
                           paddingHorizontal: space.sm,
                         }}>
-                        {method === 'exact' && group ? <Text muted>{currencySymbol(group.currency)}</Text> : null}
+                        {method === 'exact' && group ? <Text muted>{currencySymbol(cur)}</Text> : null}
                         <TextInput
                           value={values[id] ?? ''}
                           onChangeText={(v) => {
@@ -1292,6 +1417,111 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       </Sheet>
 
       {/* Which group (only when starting from Home with more than one group) */}
+      {/* Which currency it was paid in */}
+      <Sheet visible={sheet === 'currency'} onClose={() => setSheet(null)} title="Paid in">
+        {group ? (
+          <Text variant="caption" muted>
+            {group.name} settles up in {group.currency}. Anything else is converted into {group.currency} at the day’s rate, and you can
+            change the rate.
+          </Text>
+        ) : null}
+        <Card style={{ paddingVertical: 0 }}>
+          {(group ? [PAY_CURRENCIES.find((x) => x.code === group.currency) ?? { code: group.currency, name: 'Group currency' }, ...PAY_CURRENCIES.filter((x) => x.code !== group.currency)] : PAY_CURRENCIES).map(
+            (x, i) => (
+              <View key={x.code}>
+                {i > 0 ? <Divider /> : null}
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: x.code === cur }}
+                  onPress={() => {
+                    if (x.code !== cur) payIn(group && x.code === group.currency ? null : x.code);
+                    setSheet(null);
+                  }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md }}>
+                  <Text variant="heading" style={{ width: 52 }}>
+                    {x.code}
+                  </Text>
+                  <Text style={{ flex: 1 }} muted={x.code !== cur}>
+                    {x.name}
+                    {group && x.code === group.currency ? ' · the group’s currency' : ''}
+                  </Text>
+                  {x.code === cur ? <Text color={c.primary}>✓</Text> : null}
+                </Pressable>
+              </View>
+            ),
+          )}
+        </Card>
+      </Sheet>
+
+      {/* The exchange rate: today's, a typed rate, or what the bank charged */}
+      <Sheet visible={sheet === 'rate'} onClose={() => setSheet(null)} title="Exchange rate">
+        {group ? (
+          <View style={{ gap: space.md }}>
+            <Text muted>
+              {`Paid in ${cur}, shared in ${group.currency}. The rate is locked when you save, so this expense won’t change if rates move later.`}
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs }}>
+              <Chip label={lockedRate && !fx.data ? 'Saved rate' : 'Today’s rate'} selected={rateMode === 'auto'} onPress={() => setRateMode('auto')} />
+              <Chip label="Type a rate" selected={rateMode === 'manual'} onPress={() => setRateMode('manual')} />
+              <Chip label="What my bank charged" selected={rateMode === 'bank'} onPress={() => setRateMode('bank')} />
+            </View>
+            {rateMode === 'auto' ? (
+              <Text variant="caption" muted>
+                {lockedRate
+                  ? `Keeping the rate this expense was saved with: 1 ${cur} = ${showRate(lockedRate.rate)} ${group.currency}.`
+                  : fx.data
+                    ? `European Central Bank rate for ${new Date(`${fx.data.date}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}: 1 ${cur} = ${showRate(fx.data.rate)} ${group.currency}.`
+                    : fx.isError
+                      ? 'Couldn’t get today’s rate. Type a rate, or what your bank charged.'
+                      : 'Getting today’s rate…'}
+              </Text>
+            ) : rateMode === 'manual' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                <Text variant="heading">1 {cur} =</Text>
+                <TextInput
+                  value={rateText}
+                  onChangeText={setRateText}
+                  placeholder={fx.data ? showRate(fx.data.rate) : '0.00'}
+                  placeholderTextColor={c.textMuted}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                  selectionColor={c.focus}
+                  accessibilityLabel={`How many ${group.currency} one ${cur} is worth`}
+                  style={{ ...type.body, flex: 1, color: c.text, backgroundColor: c.surfaceAlt, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: space.sm }}
+                />
+                <Text variant="heading">{group.currency}</Text>
+              </View>
+            ) : (
+              <View style={{ gap: space.xs }}>
+                <Text variant="caption" muted>
+                  From your bank statement or app, including any fees. The rate is worked out from it.
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+                  <Text variant="heading">{currencySymbol(group.currency)}</Text>
+                  <TextInput
+                    value={bankText}
+                    onChangeText={setBankText}
+                    placeholder={Number.isFinite(amount) && amount > 0 && rateMode !== 'bank' ? centsToDecimalString(amount) : '0.00'}
+                    placeholderTextColor={c.textMuted}
+                    keyboardType="decimal-pad"
+                    autoFocus
+                    selectionColor={c.focus}
+                    accessibilityLabel={`What your bank charged in ${group.currency}`}
+                    style={{ ...type.body, flex: 1, color: c.text, backgroundColor: c.surfaceAlt, borderRadius: radius.sm, paddingHorizontal: space.sm, paddingVertical: space.sm }}
+                  />
+                </View>
+              </View>
+            )}
+            {rateInfo && Number.isFinite(amount) && amount > 0 ? (
+              <Text variant="label" style={{ fontVariant: ['tabular-nums'] }}>
+                {`${formatMoney(paidAmount, cur)} = ${formatMoney(amount, group.currency)}`}
+              </Text>
+            ) : null}
+            <Button label="Done" onPress={() => setSheet(null)} />
+          </View>
+        ) : null}
+      </Sheet>
+
       <Sheet visible={sheet === 'group'} onClose={() => setSheet(null)} title="Which group?">
         <View style={{ gap: space.sm }}>
           {groups.map((g) => (

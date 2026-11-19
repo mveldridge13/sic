@@ -1,9 +1,10 @@
-import { type PayIdType, computeSplit, type Balances, type Cents, type SplitInput, type SplitItem, type SplitShare, type Transfer } from '@tally/shared';
+import { type PayIdType, computeSplit, convertSplit, type Balances, type Cents, type SplitInput, type SplitItem, type SplitShare, type Transfer } from '@tally/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
 import { useMyId } from './auth';
 import { deviceCurrency, deviceTimeZone } from './currencies';
+import type { Json } from './database.types';
 import { supabase } from './supabase';
 
 /**
@@ -70,9 +71,27 @@ export interface Expense {
   items: SplitItem[] | null;
   /** Storage path of the receipt photo, if one was scanned. */
   receiptPath: string | null;
+  /** Paid in another currency than the group's: what was paid and the locked rate. `amount` is converted. */
+  original: ExpenseOriginal | null;
   occurredAt: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * What was actually paid when it wasn't in the group's currency. The rate (group currency per 1 unit
+ * of `currency`) was locked when the expense was entered and never changes by itself. Item prices
+ * and Amounts are in this currency too.
+ */
+export interface ExpenseOriginal {
+  currency: string;
+  /** Minor units of `currency` (yen, cents). */
+  amount: Cents;
+  rate: number;
+  /** The day the rate is for; null when it was typed in. */
+  rateDate: string | null;
+  /** ecb: the European Central Bank's daily rate · manual: a typed rate · bank: the converted amount typed in. */
+  source: 'ecb' | 'manual' | 'bank';
 }
 
 export interface Settlement {
@@ -191,6 +210,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
          group_members ( user_id, role, left_at, profiles ( id, name, is_guest ) ),
          expenses ( id, description, amount_cents, payer_id, created_by, split_method, occurred_at,
                     created_at, updated_at, deleted_at, items, receipt_path,
+                    original_currency, original_amount, exchange_rate, rate_date, rate_source,
                     expense_splits ( user_id, amount_cents, weight ) ),
          settlements ( id, from_user_id, to_user_id, amount_cents, occurred_at, status, created_by, created_at, note, replaces_id )`,
       )
@@ -299,6 +319,16 @@ async function fetchTally(myId: string): Promise<TallyData> {
         splits: e.expense_splits.map((s) => ({ userId: s.user_id, amount: s.amount_cents, weight: s.weight })),
         items: Array.isArray(e.items) ? (e.items as RpcItem[]).map(fromRpcItem) : null,
         receiptPath: e.receipt_path,
+        original:
+          e.original_currency && e.original_amount && e.exchange_rate && e.rate_source
+            ? {
+                currency: e.original_currency,
+                amount: e.original_amount,
+                rate: Number(e.exchange_rate),
+                rateDate: e.rate_date,
+                source: e.rate_source as ExpenseOriginal['source'],
+              }
+            : null,
         occurredAt: e.occurred_at,
         createdAt: e.created_at,
         updatedAt: e.updated_at,
@@ -458,9 +488,12 @@ export function useCreateGroup() {
 }
 
 /** Compute shares with the shared engine; the database re-checks they sum to the amount. */
-function toRpcSplits(amount: Cents, split: SplitInput) {
-  const shares = computeSplit(amount, split);
+function toRpcSplits(amount: Cents, split: SplitInput, original?: ExpenseOriginal | null) {
+  // Paid in another currency: split what was paid, then share the converted amount the same way.
+  const shares = original ? convertSplit(amount, original.amount, split) : computeSplit(amount, split);
   const weights = new Map<string, number>();
+  // Amounts typed in another currency are kept as typed, so editing shows them again.
+  if (original && split.method === 'exact') split.shares.forEach((s) => weights.set(s.userId, s.amount));
   if (split.method === 'percentage') split.shares.forEach((s) => weights.set(s.userId, s.basisPoints));
   if (split.method === 'shares') split.shares.forEach((s) => weights.set(s.userId, s.units));
   if (split.method === 'adjustment') split.shares.forEach((s) => weights.set(s.userId, s.adjustment));
@@ -487,7 +520,12 @@ export interface ExpenseInput {
   payerId: string;
   split: SplitInput;
   occurredAt: string;
+  /** Paid in another currency: `amount` is the converted amount and `split` is in the paid currency. */
+  original?: ExpenseOriginal | null;
 }
+
+const toRpcOriginal = (o: ExpenseOriginal | null | undefined) =>
+  o ? { currency: o.currency, amount: o.amount, rate: o.rate, rate_date: o.rateDate, source: o.source } : null;
 
 export function useCreateExpense() {
   return useInvalidating(async (input: ExpenseInput & { groupId: string }) => {
@@ -498,8 +536,9 @@ export function useCreateExpense() {
       p_payer_id: input.payerId,
       p_split_method: input.split.method,
       p_occurred_at: input.occurredAt,
-      p_splits: toRpcSplits(input.amount, input.split),
+      p_splits: toRpcSplits(input.amount, input.split, input.original),
       p_items: toRpcItems(input.split),
+      p_original: toRpcOriginal(input.original) as unknown as Json,
     });
     if (error) throw error;
     return data;
@@ -515,10 +554,32 @@ export function useUpdateExpense() {
       p_payer_id: input.payerId,
       p_split_method: input.split.method,
       p_occurred_at: input.occurredAt,
-      p_splits: toRpcSplits(input.amount, input.split),
+      p_splits: toRpcSplits(input.amount, input.split, input.original),
       p_items: toRpcItems(input.split),
+      p_original: toRpcOriginal(input.original) as unknown as Json,
     });
     if (error) throw error;
+  });
+}
+
+/**
+ * Today's exchange rate from `from` to `to` (units of `to` per 1 `from`), from the exchange-rate
+ * function (European Central Bank rates). Off when the currencies are the same.
+ */
+export function useExchangeRate(from: string | undefined, to: string | undefined) {
+  return useQuery({
+    queryKey: ['exchange-rate', from, to],
+    enabled: !!from && !!to && from !== to,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke<{ rate: number; date: string; source: 'ecb'; error?: string }>(
+        'exchange-rate',
+        { body: { from, to } },
+      );
+      if (error || !data?.rate) throw new Error('Couldn’t get today’s exchange rate. Type the rate or what your bank charged.');
+      return { rate: data.rate, date: data.date };
+    },
   });
 }
 

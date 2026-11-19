@@ -1,4 +1,4 @@
-import { centsToDecimalString, formatMoney, inferItemsRest, itemsSubtotal } from '@tally/shared';
+import { centsToDecimalString, formatMoney, inferConvertedItemsRest, inferItemsRest, itemsSubtotal } from '@tally/shared';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -58,6 +58,19 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
   }
 
   const money = (cents: number) => formatMoney(cents, group.currency);
+  // Paid in another currency: item prices are in that currency, and what was paid is shown too.
+  const paid = expense.original;
+  const paidMoney = (minor: number) => formatMoney(minor, paid?.currency ?? group.currency);
+  const paidTotal = paid?.amount ?? expense.amount;
+  const rateLine = paid
+    ? `Paid ${paidMoney(paid.amount)} · 1 ${paid.currency} = ${String(Number(paid.rate.toPrecision(paid.rate < 1 ? 4 : 6)))} ${group.currency} (${
+        paid.source === 'manual'
+          ? 'typed rate'
+          : paid.source === 'bank'
+            ? 'from the bank'
+            : `European Central Bank${paid.rateDate ? `, ${new Date(`${paid.rateDate}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : ''}`
+      })`
+    : null;
   // People in the split can view someone else's expense; only its owner, co-owners and whoever
   // added it can change it (the database enforces the same).
   // Nothing changes in a closed group.
@@ -100,7 +113,7 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
       <CardFigure
         label="Amount"
         value={money(expense.amount)}
-        note={`Paid by ${name(expense.payerId)} · ${formatDateTime(expense.occurredAt)}`}
+        note={`Paid by ${name(expense.payerId)} · ${formatDateTime(expense.occurredAt)}${rateLine ? `\n${rateLine}` : ''}`}
       />
       <StatRow>
         <TotalPill label="Your share" cents={myShare} currency={group.currency} tone="neutral" />
@@ -158,12 +171,12 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
                       </Text>
                     </View>
                     <Text variant="heading" style={{ fontVariant: ['tabular-nums'] }}>
-                      {money(item.amount)}
+                      {paidMoney(item.amount)}
                     </Text>
                   </View>
                 </View>
               ))}
-              {expense.amount > itemsSubtotal(expense.items) ? (
+              {paidTotal > itemsSubtotal(expense.items) ? (
                 <>
                   <Divider />
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md }}>
@@ -171,7 +184,9 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
                       <Text variant="heading">Everything else</Text>
                       <Text variant="caption" muted>
                         {(() => {
-                          const rest = inferItemsRest(expense.amount, expense.items, expense.splits);
+                          const rest = paid
+                            ? inferConvertedItemsRest(expense.amount, paid.amount, expense.items, expense.splits)
+                            : inferItemsRest(expense.amount, expense.items, expense.splits);
                           return rest.rest === 'equal'
                             ? `Split equally between ${rest.participants.map(name).join(', ')}`
                             : 'Shared in proportion to what each person had';
@@ -179,7 +194,7 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
                       </Text>
                     </View>
                     <Text variant="heading" style={{ fontVariant: ['tabular-nums'] }}>
-                      {money(expense.amount - itemsSubtotal(expense.items))}
+                      {paidMoney(paidTotal - itemsSubtotal(expense.items))}
                     </Text>
                   </View>
                 </>

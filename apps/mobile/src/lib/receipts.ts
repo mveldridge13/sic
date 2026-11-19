@@ -1,4 +1,4 @@
-import { parseToCents } from '@tally/shared';
+import { currencyDecimals, parseToCents } from '@tally/shared';
 import { useQuery } from '@tanstack/react-query';
 import { requireOptionalNativeModule } from 'expo';
 import type * as Manipulator from 'expo-image-manipulator';
@@ -40,9 +40,13 @@ const manipulator = () => require('expo-image-manipulator') as typeof Manipulato
 // Claude reads images up to about this size on the long side; bigger only costs more to send.
 const MAX_SIDE = 1568;
 
-function cents(text: string): number | null {
+/** A printed amount in the receipt's currency, in its smallest unit (whole yen, or cents). */
+function cents(text: string, currency: string | null): number | null {
   try {
-    const value = parseToCents(text);
+    // Yen and won have no cents: "1250" is ¥1,250, and a stray ".00" is ignored.
+    const value =
+      currency && currencyDecimals(currency) === 0 ? Math.round(Number(text.replace(/,/g, ''))) : parseToCents(text);
+    if (!Number.isSafeInteger(value)) return null;
     return value > 0 ? value : null;
   } catch {
     return null;
@@ -115,14 +119,15 @@ export async function scanReceipt(path: string): Promise<ReadReceipt> {
   }
   if (!data || !data.is_receipt) throw new Error('That doesn’t look like a receipt. Try another photo with the whole bill in view.');
 
+  const currency = /^[A-Z]{3}$/.test(data.currency) ? data.currency : null;
   const items = data.items
-    .map((i) => ({ name: i.name.trim().slice(0, 60), amount: cents(i.price) }))
+    .map((i) => ({ name: i.name.trim().slice(0, 60), amount: cents(i.price, currency) }))
     .filter((i): i is { name: string; amount: number } => !!i.name && i.amount !== null)
     .slice(0, 100);
   return {
     merchant: data.merchant.trim().slice(0, 120),
-    currency: /^[A-Z]{3}$/.test(data.currency) ? data.currency : null,
-    total: cents(data.total),
+    currency,
+    total: cents(data.total, currency),
     items,
   };
 }

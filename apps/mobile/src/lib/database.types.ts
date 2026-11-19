@@ -104,12 +104,17 @@ export type Database = {
           created_by: string;
           deleted_at: string | null;
           description: string;
+          exchange_rate: number | null;
           group_id: string;
           id: string;
           items: Json | null;
           notes: string | null;
           occurred_at: string;
+          original_amount: number | null;
+          original_currency: string | null;
           payer_id: string;
+          rate_date: string | null;
+          rate_source: string | null;
           receipt_path: string | null;
           recurring_id: string | null;
           split_method: Database['public']['Enums']['split_method'];
@@ -122,12 +127,17 @@ export type Database = {
           created_by: string;
           deleted_at?: string | null;
           description: string;
+          exchange_rate?: number | null;
           group_id: string;
           id?: string;
           items?: Json | null;
           notes?: string | null;
           occurred_at?: string;
+          original_amount?: number | null;
+          original_currency?: string | null;
           payer_id: string;
+          rate_date?: string | null;
+          rate_source?: string | null;
           receipt_path?: string | null;
           recurring_id?: string | null;
           split_method: Database['public']['Enums']['split_method'];
@@ -139,12 +149,17 @@ export type Database = {
           created_by?: string;
           deleted_at?: string | null;
           description?: string;
+          exchange_rate?: number | null;
           group_id?: string;
           id?: string;
           items?: Json | null;
           notes?: string | null;
           occurred_at?: string;
+          original_amount?: number | null;
+          original_currency?: string | null;
           payer_id?: string;
+          rate_date?: string | null;
+          rate_source?: string | null;
           receipt_path?: string | null;
           recurring_id?: string | null;
           split_method?: Database['public']['Enums']['split_method'];
@@ -883,6 +898,7 @@ export type Database = {
       can_read_expense: { Args: { p_created_by: string; p_expense_id: string; p_group_id: string }; Returns: boolean };
       can_see_expense: { Args: { p_created_by: string; p_group_id: string }; Returns: boolean };
       can_see_settlement: { Args: { p_created_by: string; p_from: string; p_group_id: string; p_to: string }; Returns: boolean };
+      check_original: { Args: { p_amount_cents: number; p_group_id: string; p_original: Json }; Returns: number };
       check_recurring_input: {
         Args: {
           p_amount_cents: number;
@@ -913,6 +929,7 @@ export type Database = {
           p_items?: Json;
           p_notes?: string;
           p_occurred_at?: string;
+          p_original?: Json;
           p_payer_id: string;
           p_split_method: Database['public']['Enums']['split_method'];
           p_splits: Json;
@@ -1126,6 +1143,7 @@ export type Database = {
           p_items?: Json;
           p_notes?: string;
           p_occurred_at: string;
+          p_original?: Json;
           p_payer_id: string;
           p_split_method: Database['public']['Enums']['split_method'];
           p_splits: Json;

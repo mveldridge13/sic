@@ -155,10 +155,13 @@ export function Bubble({
   let line: string;
   let right: { big: string; small?: string };
   if (item.kind === 'expense') {
-    const share = data.expenses.find((e) => e.id === item.id)?.splits.find((s) => s.userId === myId)?.amount ?? 0;
+    const expense = data.expenses.find((e) => e.id === item.id);
+    const share = expense?.splits.find((s) => s.userId === myId)?.amount ?? 0;
     emoji = expenseEmoji(item.title);
     title = item.title;
-    line = `${mine ? 'You' : firstName(name(item.actorId))} paid ${money(item.amount)}`;
+    // Paid in another currency: show what was paid, then what it came to.
+    const paid = expense?.original ? `${formatMoney(expense.original.amount, expense.original.currency)} (${money(item.amount)})` : money(item.amount);
+    line = `${mine ? 'You' : firstName(name(item.actorId))} paid ${paid}`;
     right = share > 0 ? { big: money(share), small: 'your share' } : { big: '—', small: 'not in it' };
   } else {
     const to = item.toUserId === myId ? 'you' : firstName(name(item.toUserId));
