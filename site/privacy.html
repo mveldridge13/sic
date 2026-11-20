@@ -110,8 +110,9 @@
     <ul><li>IP address</li><li>Device and application type</li><li>Browser type</li><li>Time and date of requests</li><li>Pages or services requested</li></ul>
     <p>This information is used for operational security, troubleshooting and investigating potential misuse.</p>
     <h3>Information stored on your device</h3>
-    <p>The <span class="sic">sic<span class="sic-dot">.</span></span> application stores a sign-in token on your device to keep you authenticated between sessions. In the web version, it is kept in your browser's local storage.</p>
-    <p>Signing out removes the locally stored sign-in token.</p>
+    <p>To keep you signed in and let you use <span class="sic">sic<span class="sic-dot">.</span></span> without a connection, the application stores the following on your device (in the web version, in your browser's local storage):</p>
+    <ul><li>A sign-in token, so you stay signed in between sessions.</li><li>A copy of the groups, balances, expenses and payments you can see, so they show when you're offline.</li><li>Expenses and payments you add while offline, until they are sent to our servers.</li></ul>
+    <p>Signing out removes the sign-in token and the stored copy from your device. Anything still waiting to be sent stays on the device until you sign in again and it is sent.</p>
     <h2 id="ai-powered-receipt-scanning">4. AI-powered receipt scanning</h2>
     <p><span class="sic">sic<span class="sic-dot">.</span></span> uses artificial intelligence to extract information from receipts. This functionality is powered by Claude, an AI service provided by Anthropic.</p>
     <p>Receipt scanning is optional and requires your permission before any receipt image is sent to Anthropic.</p>
@@ -184,7 +185,7 @@
     <p><span class="sic">sic<span class="sic-dot">.</span></span> helps people keep track of shared expenses and repayments. It does not process payments, hold money, initiate bank transfers or connect to your bank account.</p>
     <p>We never request or receive your banking login credentials.</p>
     <p>We do not verify payments directly with banks.</p>
-    <p>A payment is recorded when the receiving person confirms it in <span class="sic">sic<span class="sic-dot">.</span></span>, or when a member records the payment themselves.</p>
+    <p>A payment counts once the person receiving the money records it or confirms it arrived. A payment recorded by the payer, or by anyone else, waits for the receiver to confirm it. A payment made to a guest, who has no account to confirm it, counts straight away.</p>
     <h3>PayID information</h3>
     <p>Adding a PayID is optional.</p>
     <p>If you choose to add one, it is visible only to members of groups you own. It is not displayed in groups where you are an ordinary member.</p>
@@ -195,7 +196,7 @@
     <p>These providers process information only as necessary to provide their services to us.</p>
     <div class="table"><table>
 <tr><th>Provider</th><th>Purpose</th><th>Information processed</th><th>Location</th></tr>
-<tr><td>Supabase</td><td>Database hosting, authentication, sign-in emails, receipt image storage and server-side receipt processing</td><td>Application data, including account details, groups, expenses, payments and receipt images</td><td>Primary data storage in Sydney, Australia</td></tr>
+<tr><td>Supabase</td><td>Database hosting, authentication, sign-in emails, receipt image storage and server-side receipt processing</td><td>Application data, including account details, groups, expenses, payments and receipt images</td><td>Data stored in Sydney, Australia. Receipt processing runs on Supabase's servers, which may be outside Australia</td></tr>
 <tr><td>Anthropic</td><td>AI-powered receipt scanning through Claude</td><td>Receipt images submitted by users who have consented</td><td>United States and other countries where Anthropic operates</td></tr>
 <tr><td>Vercel</td><td>Website hosting and delivery</td><td>Technical website request information, including IP addresses, browser information and requested pages</td><td>Worldwide network, including locations outside Australia</td></tr>
 <tr><td>Frankfurter</td><td>Currency exchange rate information. Our server requests the rates; your device does not contact Frankfurter</td><td>Currency codes and the relevant date used to retrieve exchange rates</td><td>European-based exchange rate service</td></tr>
