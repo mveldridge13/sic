@@ -23,8 +23,10 @@
     --coral: #E4928A;
     --coral-soft: #F7DDD8;
     --red: #EF4444;
+    --green: #3E8E6A;
     --text: #2F2838;
     --muted: #6E6478;
+    --line: #EDE4EE;
     --surface: #FFFFFF;
     --bg: var(--cream);
     --radius: 24px;
@@ -36,7 +38,9 @@
       --lavender-soft: #3A3148;
       --text: #F4ECF0;
       --muted: #B5A9BD;
+      --line: #3A3243;
       --coral-soft: #4A3036;
+      --green: #7CC9A4;
     }
   }
   * { box-sizing: border-box; }
@@ -45,12 +49,20 @@
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 17px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 17px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   img { max-width: 100%; display: block; }
   a { color: inherit; }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; text-decoration: none; padding: 14px 26px; border-radius: 999px; transition: transform .15s ease, background .15s ease; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-light { background: #fff; color: var(--deep); }
+  .btn-light:hover { background: #F3EEF8; }
+  .btn .arrow { transition: transform .15s ease; }
+  .btn:hover .arrow { transform: translateX(3px); }
 
   /* ── Header + hero (purple) ─────────────────────────────── */
   .hero { background: var(--deep); color: #fff; overflow: hidden; }
@@ -62,71 +74,106 @@
   .nav-links { display: flex; align-items: center; gap: 22px; }
   .nav a.login { opacity: 1; background: #fff; color: var(--deep); padding: 9px 20px; border-radius: 999px; }
   .nav a.login:hover { text-decoration: none; background: #F3EEF8; }
-  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 40px 0 88px; }
-  .hero h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 800; margin: 0 0 20px; }
+  .hero-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; padding: 48px 0 104px; }
+  .hero h1 { font-size: clamp(40px, 6vw, 66px); line-height: 1.03; letter-spacing: -0.035em; font-weight: 800; margin: 0 0 22px; }
   .hero h1 .dot { color: var(--red); }
-  .hero p.lead { font-size: 20px; color: rgba(255,255,255,.84); margin: 0 0 32px; max-width: 34ch; }
-  .badges { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-  .badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 14px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); font-weight: 600; font-size: 15px; }
-  .badge small { display: block; font-weight: 500; font-size: 12px; opacity: .75; }
-  .soon { font-size: 14px; color: rgba(255,255,255,.7); margin-top: 14px; }
+  .hero p.lead { font-size: 20px; color: rgba(255,255,255,.82); margin: 0 0 36px; max-width: 34ch; }
+  .cta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+  .soon { font-size: 14px; color: rgba(255,255,255,.7); margin: 0; }
 
-  /* Phone illustration */
-  .phone { justify-self: center; width: min(320px, 100%); aspect-ratio: 9 / 18.5; border-radius: 44px; background: #1b1722; padding: 12px; box-shadow: 0 40px 80px rgba(0,0,0,.35); transform: rotate(3deg); }
-  .screen { height: 100%; border-radius: 34px; background: var(--cream); color: #2F2838; padding: 22px 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
-  .screen .hi { font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
-  .screen .sub { font-size: 12px; color: #6E6478; margin-top: -8px; }
-  .card-total { background: var(--coral); color: #fff; border-radius: 20px; padding: 16px; }
-  .card-total .lbl { font-size: 11px; opacity: .9; }
-  .card-total .amt { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
-  .card-total .note { font-size: 11px; opacity: .9; }
-  .row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 16px; padding: 10px 12px; font-size: 13px; }
-  .row .em { width: 34px; height: 34px; border-radius: 12px; background: var(--lavender); display: grid; place-items: center; font-size: 17px; }
-  .row .t { flex: 1; font-weight: 600; }
-  .row .t span { display: block; font-weight: 400; font-size: 11px; color: #6E6478; }
-  .row .v { font-weight: 700; }
-  .row .v.owed { color: var(--deep); }
-  .add { margin-top: auto; background: var(--deep); color: #fff; text-align: center; font-weight: 700; border-radius: 16px; padding: 12px; font-size: 14px; }
+  /* Phone with a real app screen */
+  .phone { justify-self: center; width: min(310px, 100%); border-radius: 46px; background: #1b1722; padding: 10px; box-shadow: 0 40px 80px rgba(0,0,0,.35); }
+  .hero .phone { transform: rotate(3deg); }
+  .phone img { width: 100%; height: auto; border-radius: 36px; }
 
   /* ── Sections ──────────────────────────────────────────── */
-  section { padding: 88px 0; }
-  .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--coral); margin: 0 0 10px; }
-  h2 { font-size: clamp(30px, 4vw, 42px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 16px; }
-  .intro { color: var(--muted); max-width: 56ch; margin: 0 0 44px; font-size: 18px; }
+  section { padding: 112px 0; }
+  .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--coral); margin: 0 0 12px; }
+  h2 { font-size: clamp(30px, 4vw, 44px); line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 16px; }
+  .intro { color: var(--muted); max-width: 52ch; margin: 0 0 48px; font-size: 18px; }
 
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; }
   .step { background: var(--surface); border-radius: var(--radius); padding: 28px; }
   .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--deep); color: #fff; font-weight: 800; margin-bottom: 18px; }
-  .step h3, .feature h3 { margin: 0 0 6px; font-size: 19px; }
-  .step p, .feature p { margin: 0; color: var(--muted); font-size: 16px; }
+  .step h3 { margin: 0 0 6px; font-size: 19px; }
+  .step p { margin: 0; color: var(--muted); font-size: 16px; }
 
-  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .feature { background: var(--lavender-soft); border-radius: var(--radius); padding: 28px; }
-  .feature .icon { font-size: 30px; margin-bottom: 14px; }
+  /* ── Try a split ───────────────────────────────────────── */
+  .try { display: grid; grid-template-columns: .9fr 1.1fr; gap: 56px; align-items: center; }
+  .calc { background: var(--surface); border-radius: 28px; padding: 32px; box-shadow: 0 24px 60px rgba(96,85,116,.12); }
+  .calc label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+  .amount { display: flex; align-items: center; gap: 4px; border-bottom: 2px solid var(--line); padding-bottom: 6px; margin-bottom: 26px; }
+  .amount span { font-size: 40px; font-weight: 800; color: var(--muted); }
+  .try > *, .privacy > *, .feature-row > * { min-width: 0; }
+  .amount input { flex: 1; min-width: 0; width: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font: 800 44px/1.1 Inter, system-ui, sans-serif; letter-spacing: -0.03em; }
+  .amount:focus-within { border-color: var(--deep); }
+  .people { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+  .stepper { display: flex; align-items: center; gap: 14px; }
+  .stepper button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--lavender-soft); color: var(--text); font: 700 22px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+  .stepper button:hover { background: var(--lavender); color: #2F2838; }
+  .stepper button:disabled { opacity: .4; cursor: default; }
+  .stepper output { min-width: 2ch; text-align: center; font-size: 24px; font-weight: 800; }
+  .faces { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; min-height: 36px; }
+  .face { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .result { background: var(--deep); color: #fff; border-radius: 20px; padding: 20px 22px; }
+  .result .lbl { font-size: 13px; opacity: .85; }
+  .result .each { font-size: 36px; font-weight: 800; letter-spacing: -0.02em; }
+  .result .fine { font-size: 13px; opacity: .85; min-height: 1.4em; }
 
-  .band { background: var(--deep); color: #fff; border-radius: 32px; padding: 56px 40px; text-align: center; }
-  .band img { width: 220px; margin: 0 auto 18px; }
-  .band p { color: rgba(255,255,255,.84); max-width: 46ch; margin: 0 auto; font-size: 18px; }
+  /* ── Feature rows ──────────────────────────────────────── */
+  .feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; padding: 48px 0; }
+  .feature-row + .feature-row { border-top: 1px solid var(--line); }
+  .feature-row:nth-child(even) .visual { order: -1; }
+  .feature-row h3 { font-size: clamp(24px, 3vw, 30px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 12px; }
+  .feature-row p { margin: 0; color: var(--muted); font-size: 18px; max-width: 40ch; }
+  .visual { background: var(--lavender-soft); border-radius: 28px; padding: 44px 32px; display: grid; place-items: center; }
+  .closeup { width: min(380px, 100%); height: auto; border-radius: 22px; box-shadow: 0 24px 50px rgba(63,54,80,.18); }
+
+  /* ── Privacy ───────────────────────────────────────────── */
+  .privacy { background: var(--surface); border-radius: 32px; padding: 56px; display: grid; grid-template-columns: .9fr 1.1fr; gap: 48px; }
+  .privacy h2 { margin-bottom: 14px; }
+  .privacy .intro { margin: 0 0 22px; }
+  .privacy a.more { font-weight: 700; color: var(--deep); text-decoration: none; }
+  .privacy a.more:hover { text-decoration: underline; }
+  .points { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; }
+  .points li { display: grid; grid-template-columns: 28px 1fr; gap: 14px; }
+  .points .tick { width: 28px; height: 28px; border-radius: 50%; background: var(--lavender-soft); color: var(--deep); display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+  .points b { display: block; font-size: 17px; }
+  .points span { color: var(--muted); font-size: 16px; }
+
+  .band { background: var(--deep); color: #fff; border-radius: 32px; padding: 64px 40px; text-align: center; }
+  .band img { width: 200px; margin: 0 auto 18px; }
+  .band p { color: rgba(255,255,255,.84); max-width: 46ch; margin: 0 auto 28px; font-size: 18px; }
 
   footer { padding: 40px 0 56px; color: var(--muted); font-size: 14px; }
   footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: center; }
   footer img { width: 56px; }
   footer a { color: var(--text); font-weight: 600; }
   .dark-only { display: none; }
-  @media (prefers-color-scheme: dark) { .dark-only { display: block; } .light-only { display: none; } }
+  @media (prefers-color-scheme: dark) {
+    .dark-only { display: block; } .light-only { display: none; }
+    .privacy a.more { color: #E6DDF2; }
+    .stepper button:hover { background: #4A3F5A; color: var(--text); }
+  }
 
   @media (max-width: 860px) {
-    .hero-grid { grid-template-columns: 1fr; padding-bottom: 64px; }
-    .phone { width: min(280px, 80%); transform: none; }
-    .steps, .features { grid-template-columns: 1fr; }
-    section { padding: 64px 0; }
-    .band { padding: 44px 24px; }
+    .hero-grid { grid-template-columns: 1fr; padding: 32px 0 72px; }
+    .hero .phone { width: min(270px, 78%); transform: none; }
+    .steps { grid-template-columns: 1fr; }
+    .try, .privacy { grid-template-columns: 1fr; gap: 32px; }
+    .feature-row { grid-template-columns: 1fr; gap: 28px; padding: 36px 0; }
+    .feature-row:nth-child(even) .visual { order: 0; }
+    .visual { padding: 28px 20px; min-height: 0; }
+    section { padding: 72px 0; }
+    .calc { padding: 24px; }
+    .privacy { padding: 36px 24px; }
+    .band { padding: 48px 24px; }
   }
 
   /* "sic." in running text: brand purple with the red full stop (cream on purple areas). */
   .sic { color: var(--deep); font-weight: 700; white-space: nowrap; }
   .sic-dot { color: var(--red); }
-  .hero .sic, .band .sic, header .sic { color: #fff; }
+  .hero .sic, .band .sic, .result .sic, header .sic { color: #fff; }
   @media (prefers-color-scheme: dark) { .sic { color: #E6DDF2; } }
 </style>
 </head>
@@ -138,32 +185,20 @@
       <img src="logo-full-light.png" alt="sic. sharing is caring">
       <div class="nav-links">
         <a href="#how">How it works</a>
-        <a class="login" href="/app/sign-in">Log in</a>
+        <a class="login" href="/app/sign-in">Sign In</a>
       </div>
     </nav>
     <div class="hero-grid">
       <div>
         <h1>Split costs, not friendships<span class="dot">.</span></h1>
         <p class="lead"><span class="sic">sic<span class="sic-dot">.</span></span> keeps track of who paid for what in your trips, share houses and dinners, so everyone knows where they stand and settling up takes seconds.</p>
-        <div class="badges">
-          <span class="badge">▶&nbsp; <span><small>Coming soon to</small>Google Play</span></span>
-          <span class="badge"><span><small>Coming soon to the</small>App Store</span></span>
+        <div class="cta-row">
+          <a class="btn btn-light" href="/app/sign-up">Get started for free <span class="arrow">→</span></a>
+          <p class="soon">Coming soon to Google Play and the App Store</p>
         </div>
       </div>
-      <div class="phone" aria-hidden="true">
-        <div class="screen">
-          <div class="hi">Good evening 👋</div>
-          <div class="sub">Here's where you stand with your groups.</div>
-          <div class="card-total">
-            <div class="lbl">Your total position</div>
-            <div class="amt">+$42.50</div>
-            <div class="note">You're owed across 3 groups</div>
-          </div>
-          <div class="row"><div class="em">🏖️</div><div class="t">Byron trip<span>Sam owes you</span></div><div class="v owed">$28.00</div></div>
-          <div class="row"><div class="em">🏠</div><div class="t">Housemates<span>You owe Alex</span></div><div class="v">$15.50</div></div>
-          <div class="row"><div class="em">🍝</div><div class="t">Friday dinner<span>You're owed</span></div><div class="v owed">$30.00</div></div>
-          <div class="add">+ Add expense</div>
-        </div>
+      <div class="phone">
+        <img src="screens/home.jpg" width="780" height="1688" alt="The sic. home screen: your total position across your groups, a payment to confirm, and who to settle with">
       </div>
     </div>
   </div>
@@ -184,17 +219,98 @@
   </section>
 
   <section style="padding-top:0">
+    <div class="wrap try">
+      <div>
+        <p class="eyebrow">Try a split</p>
+        <h2>Who owes what, in a second</h2>
+        <p class="intro" style="margin-bottom:0">Type in a bill and pick how many people shared it. Every cent is accounted for, so the shares always add up to the total.</p>
+      </div>
+      <div class="calc">
+        <label for="amt">The bill</label>
+        <div class="amount"><span>$</span><input id="amt" inputmode="decimal" autocomplete="off" value="186.50" aria-label="Bill amount in dollars"></div>
+        <div class="people">
+          <label style="margin:0">Split between</label>
+          <div class="stepper">
+            <button type="button" id="minus" aria-label="One fewer person">−</button>
+            <output id="count" aria-live="polite">4</output>
+            <button type="button" id="plus" aria-label="One more person">+</button>
+          </div>
+        </div>
+        <div class="faces" id="faces" aria-hidden="true"></div>
+        <div class="result" aria-live="polite">
+          <div class="lbl">Each person pays</div>
+          <div class="each" id="each">$46.63</div>
+          <div class="fine" id="fine"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
     <div class="wrap">
       <p class="eyebrow">Made for real life</p>
       <h2>Everything a shared tab needs</h2>
-      <p class="intro">Built for the way people actually share costs: rent that repeats, dinners where someone had the lobster, and that friend who isn't on the app yet.</p>
+      <p class="intro" style="margin-bottom:8px">Built for the way people actually share costs: rent that repeats, dinners where someone had the lobster, and that friend who isn't on the app yet.</p>
+
       <div class="features">
-        <div class="feature"><div class="icon">🧾</div><h3>Scan receipts</h3><p>Take a photo and the shop, total and items fill themselves in, ready to split.</p></div>
-        <div class="feature"><div class="icon">🔁</div><h3>Recurring bills</h3><p>Rent, power and subscriptions add themselves on time, every time.</p></div>
-        <div class="feature"><div class="icon">🍽️</div><h3>Split by item</h3><p>Everyone pays for what they had, with tax and tip shared fairly.</p></div>
-        <div class="feature"><div class="icon">🤝</div><h3>Simple settling</h3><p>The fewest payments to get everyone square, with reminders when needed.</p></div>
-        <div class="feature"><div class="icon">🔒</div><h3>Private by design</h3><p>Members see what involves them; the group owner sees the full picture.</p></div>
-        <div class="feature"><div class="icon">👋</div><h3>Guests welcome</h3><p>Add someone by name now. When they join, their share becomes theirs.</p></div>
+        <div class="feature-row">
+          <div>
+            <h3>Snap the receipt. Skip the typing.</h3>
+            <p>Take a photo and the shop, total and every item fill themselves in, ready to split. Check it over, change anything, save.</p>
+          </div>
+          <div class="visual">
+            <img class="closeup" src="screens/receipt.jpg" width="764" height="1036" loading="lazy" alt="An expense from a scanned receipt, with each item and who shared it">
+          </div>
+        </div>
+
+        <div class="feature-row">
+          <div>
+            <h3>Everyone pays for what they had</h3>
+            <p>Split item by item when the table orders differently. Tax and tip are shared out fairly, and the person who skipped dessert doesn't pay for it.</p>
+          </div>
+          <div class="visual">
+            <img class="closeup" src="screens/items.jpg" width="764" height="876" loading="lazy" alt="A dinner split item by item: each dish and who had it">
+          </div>
+        </div>
+
+        <div class="feature-row">
+          <div>
+            <h3>Settle up in a couple of taps</h3>
+            <p><span class="sic">sic<span class="sic-dot">.</span></span> works out the fewest payments to get everyone square. Pay back with PayID from your banking app, and the other person confirms it landed.</p>
+          </div>
+          <div class="visual">
+            <img class="closeup" src="screens/settle.jpg" width="764" height="940" loading="lazy" alt="Paying Alex back by PayID, with the email and amount ready to copy">
+          </div>
+        </div>
+
+        <div class="feature-row">
+          <div>
+            <h3>Bills that repeat, sorted</h3>
+            <p>Rent, power and subscriptions add themselves on time, every time, so nobody has to remember.</p>
+          </div>
+          <div class="visual">
+            <img class="closeup" src="screens/recurring.jpg" width="764" height="1136" loading="lazy" alt="Recurring bills for a share house: rent weekly, power and internet monthly">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="privacy">
+        <div>
+          <p class="eyebrow">Private by design</p>
+          <h2>Your money stays your business</h2>
+          <p class="intro"><span class="sic">sic<span class="sic-dot">.</span></span> keeps only what it needs to split costs in a group, and nothing more.</p>
+          <a class="more" href="/privacy">Read the privacy policy →</a>
+        </div>
+        <ul class="points">
+          <li><span class="tick">✓</span><div><b>People see what involves them</b><span>Members see the expenses they're part of. The group owner sees the full picture.</span></div></li>
+          <li><span class="tick">✓</span><div><b>No ads, no selling, no tracking</b><span>Your information is never sold or used for advertising.</span></div></li>
+          <li><span class="tick">✓</span><div><b>Nowhere near your bank</b><span><span class="sic">sic<span class="sic-dot">.</span></span> never moves money and never asks for your bank login.</span></div></li>
+          <li><span class="tick">✓</span><div><b>Stored in Australia</b><span>Your groups and expenses are kept on servers in Sydney.</span></div></li>
+        </ul>
       </div>
     </div>
   </section>
@@ -203,7 +319,8 @@
     <div class="wrap">
       <div class="band">
         <img src="logo-light.png" alt="sic.">
-        <p>Coming soon to Android and iOS</p>
+        <p>Start splitting on the web today.</p>
+        <a class="btn btn-light" href="/app/sign-up">Get started for free <span class="arrow">→</span></a>
       </div>
     </div>
   </section>
@@ -216,6 +333,44 @@
     <span>© 2026 <span class="sic">sic<span class="sic-dot">.</span></span> · sharing is caring · <a href="/privacy">Privacy policy</a></span>
   </div>
 </footer>
+
+<script>
+(function () {
+  var amt = document.getElementById('amt'), countEl = document.getElementById('count');
+  var minus = document.getElementById('minus'), plus = document.getElementById('plus');
+  var each = document.getElementById('each'), fine = document.getElementById('fine'), faces = document.getElementById('faces');
+  var names = ['You', 'S', 'A', 'J', 'M', 'R', 'L', 'K', 'T', 'E', 'B', 'C'];
+  var colours = ['#3F3650', '#E4928A', '#605574', '#8E7FB0', '#C97B73', '#7A6C93'];
+  var n = 4, MIN = 2, MAX = 12;
+  function money(c) { return '$' + (c / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function render() {
+    countEl.textContent = n;
+    minus.disabled = n <= MIN; plus.disabled = n >= MAX;
+    faces.innerHTML = '';
+    for (var i = 0; i < n; i++) {
+      var f = document.createElement('span');
+      f.className = 'face'; f.style.background = colours[i % colours.length];
+      f.style.fontSize = i === 0 ? '11px' : '13px';
+      f.textContent = names[i]; faces.appendChild(f);
+    }
+    var v = parseFloat(String(amt.value).replace(/[^0-9.]/g, ''));
+    var cents = isFinite(v) ? Math.round(v * 100) : 0;
+    if (cents <= 0) { each.textContent = '$0.00'; fine.textContent = ''; return; }
+    var base = Math.floor(cents / n), extra = cents - base * n;
+    if (extra === 0) {
+      each.textContent = money(base);
+      fine.textContent = n + ' × ' + money(base) + ' = ' + money(cents);
+    } else {
+      each.textContent = money(base + 1);
+      fine.textContent = extra + ' pay ' + money(base + 1) + ', ' + (n - extra) + ' pay ' + money(base) + ' · adds up to ' + money(cents);
+    }
+  }
+  amt.addEventListener('input', render);
+  minus.addEventListener('click', function () { if (n > MIN) { n--; render(); } });
+  plus.addEventListener('click', function () { if (n < MAX) { n++; render(); } });
+  render();
+})();
+</script>
 
 </body>
 </html>
