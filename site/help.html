@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help · sic.</title>
+<meta name="description" content="Answers to common questions about sic.: groups, splitting expenses, paying back, recurring bills, currencies, receipts and your account.">
+<meta property="og:title" content="sic. Help">
+<meta property="og:description" content="Answers to common questions about splitting costs with sic.">
+<meta property="og:image" content="https://sic-app.com/icon.png">
+<meta property="og:url" content="https://sic-app.com/help">
+<meta name="theme-color" content="#605574">
+<link rel="icon" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  @font-face { font-family: Inter; font-style: normal; font-weight: 400 800; font-display: swap; src: url(/fonts/inter-latin.woff2) format('woff2'); }
+  :root {
+    --deep: #605574;
+    --cream: #FAF0EB;
+    --lavender: #E6DDF2;
+    --lavender-soft: #F3EEF9;
+    --coral: #E4928A;
+    --red: #EF4444;
+    --text: #2F2838;
+    --muted: #6E6478;
+    --line: #EDE4EE;
+    --surface: #FFFFFF;
+    --bg: var(--cream);
+    --link: var(--deep);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1E1A24;
+      --surface: #28222F;
+      --lavender-soft: #3A3148;
+      --text: #F4ECF0;
+      --muted: #B5A9BD;
+      --line: #3A3243;
+      --link: #E6DDF2;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  img { max-width: 100%; display: block; }
+  a { color: var(--link); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  .narrow { max-width: 780px; }
+
+  /* Header */
+  .hero { background: var(--deep); color: #fff; }
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .nav img { width: 150px; }
+  @media (max-width: 860px) { .nav img { width: 124px; } }
+  .nav-links { display: flex; align-items: center; gap: 8px; }
+  .nav a { color: #fff; font-weight: 600; font-size: 15px; text-decoration: none; padding: 9px 20px; border-radius: 999px; transition: background .15s ease, color .15s ease; }
+  .nav a:hover { background: rgba(255,255,255,.16); }
+  .nav a.login { background: #fff; color: var(--deep); }
+  .nav a.login:hover { background: #F3EEF8; }
+  .hero-body { padding: 36px 0 64px; text-align: center; }
+  .hero h1 { font-size: clamp(36px, 5.5vw, 56px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 800; margin: 0 0 12px; }
+  .hero h1 .dot { color: var(--red); }
+  .hero p { color: rgba(255,255,255,.82); font-size: 19px; margin: 0 auto 28px; max-width: 40ch; }
+  .search { position: relative; max-width: 560px; margin: 0 auto; }
+  .search input { width: 100%; border: 0; outline: 0; border-radius: 999px; padding: 17px 22px 17px 52px; font: 500 17px Inter, system-ui, sans-serif; color: #2F2838; background: #fff; box-shadow: 0 16px 40px rgba(0,0,0,.18); }
+  .search input:focus { box-shadow: 0 0 0 4px rgba(255,255,255,.35), 0 16px 40px rgba(0,0,0,.18); }
+  .search svg { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #6E6478; }
+
+  /* Topic tiles */
+  .topics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: -28px auto 0; position: relative; }
+  .topic { background: var(--surface); border-radius: 20px; padding: 18px 16px; text-decoration: none; color: var(--text); box-shadow: 0 10px 30px rgba(96,85,116,.10); transition: transform .15s ease; }
+  .topic:hover { transform: translateY(-2px); }
+  .topic .em { font-size: 24px; display: block; margin-bottom: 8px; }
+  .topic b { display: block; font-size: 15px; line-height: 1.3; }
+  .topic span.n { font-size: 13px; color: var(--muted); }
+
+  /* Articles */
+  main { padding: 64px 0 40px; }
+  .cat { margin: 0 0 48px; scroll-margin-top: 20px; }
+  .cat h2 { font-size: 26px; letter-spacing: -0.02em; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
+  details { background: var(--surface); border-radius: 18px; margin: 0 0 10px; scroll-margin-top: 20px; }
+  summary { list-style: none; cursor: pointer; padding: 18px 56px 18px 22px; font-weight: 700; font-size: 17px; position: relative; border-radius: 18px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: ""; position: absolute; right: 22px; top: 50%; width: 10px; height: 10px; border-right: 2.5px solid var(--muted); border-bottom: 2.5px solid var(--muted); transform: translateY(-70%) rotate(45deg); transition: transform .2s ease; }
+  details[open] summary::after { transform: translateY(-30%) rotate(-135deg); }
+  summary:hover { background: var(--lavender-soft); }
+  summary:focus-visible { outline: 3px solid var(--coral); outline-offset: 2px; }
+  .body { padding: 0 22px 20px; color: var(--text); }
+  .body p, .body li { font-size: 16px; }
+  .body p { margin: 0 0 12px; }
+  .body ul, .body ol { margin: 0 0 12px; padding-left: 22px; }
+  .body li { margin: 5px 0; }
+  .body table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 4px 0 12px; }
+  .body th, .body td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .body th { background: var(--lavender-soft); font-weight: 700; }
+  .body tr:last-child td { border-bottom: 0; }
+  .body .tip { background: var(--lavender-soft); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
+  .body > :last-child { margin-bottom: 0; }
+  .tablewrap { overflow-x: auto; }
+  b.ui { font-weight: 700; }
+
+  .empty { display: none; text-align: center; color: var(--muted); padding: 24px 0 48px; }
+  .empty b { color: var(--text); }
+
+  footer { padding: 32px 0 56px; color: var(--muted); font-size: 14px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: center; }
+  footer img { width: 56px; }
+  footer a { color: var(--text); font-weight: 600; }
+  .dark-only { display: none; }
+  @media (prefers-color-scheme: dark) { .dark-only { display: block; } .light-only { display: none; } }
+
+  .sic { font-weight: 700; white-space: nowrap; }
+  .sic-dot { color: var(--red); }
+
+  @media (max-width: 960px) { .topics { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 600px) {
+    .topics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .topic { padding: 14px; }
+    .hero-body { padding: 24px 0 56px; }
+    summary { padding: 16px 48px 16px 18px; font-size: 16px; }
+    .body { padding: 0 18px 18px; }
+    main { padding-top: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav class="nav">
+      <a href="/" style="padding:0;background:none"><img src="logo-full-light.png" alt="sic. sharing is caring"></a>
+      <div class="nav-links">
+        <a href="/app/sign-in">Log in</a>
+        <a class="login" href="/app/sign-up">Sign up</a>
+      </div>
+    </nav>
+    <div class="hero-body">
+      <h1>How can we help<span class="dot">?</span></h1>
+      <p>Answers to common questions about groups, splitting, paying back and your account.</p>
+      <div class="search" role="search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search help" aria-label="Search help articles" autocomplete="off">
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="topics" id="topics" aria-label="Help topics"></nav>
+</div>
+
+<main>
+  <div class="wrap narrow" id="articles">
+
+    <section class="cat" id="getting-started" data-em="👋" data-title="Getting started">
+      <h2>👋 Getting started</h2>
+
+      <details id="what-is-sic">
+        <summary>What is sic.?</summary>
+        <div class="body">
+          <p><span class="sic">sic<span class="sic-dot">.</span></span> keeps track of who paid for what in a group, like a trip, a share house or a dinner club. Everyone can see where they stand, and <span class="sic">sic<span class="sic-dot">.</span></span> works out the simplest way to settle up.</p>
+          <p><span class="sic">sic<span class="sic-dot">.</span></span> never moves money. You pay people back however you like (bank transfer, PayID, cash) and record it so the balances stay right.</p>
+          <p>The phone apps are coming soon to Google Play and the App Store. You can use <span class="sic">sic<span class="sic-dot">.</span></span> in your web browser today.</p>
+        </div>
+      </details>
+
+      <details id="create-account">
+        <summary>How do I create an account?</summary>
+        <div class="body">
+          <ol>
+            <li>Go to <a href="/app/sign-up">sic-app.com/app/sign-up</a> (or tap <b class="ui">Sign up</b> at the top of this page).</li>
+            <li>Enter your name (this is how friends will see you), your email and a password of at least 8 characters.</li>
+            <li>Tap <b class="ui">Create account</b>.</li>
+          </ol>
+          <p class="tip">If someone sent you an invite link, open it first. <span class="sic">sic<span class="sic-dot">.</span></span> remembers the invite and adds you to the group once you've signed up.</p>
+        </div>
+      </details>
+
+      <details id="first-group">
+        <summary>How do I create my first group?</summary>
+        <div class="body">
+          <p>Go to the <b class="ui">Groups</b> tab and tap <b class="ui">New group</b>. It takes three quick steps:</p>
+          <ol>
+            <li><b>What's it for?</b> Pick Trip, Home, Housemates, Family, Dining or Other. This sets the group's emoji.</li>
+            <li><b>Who's in?</b> Tap people you already share a group with, or tap <b class="ui">Someone new</b> and type their name. Tap <b class="ui">That's everyone</b> when you're done.</li>
+            <li><b>Call it…</b> Type a name or keep the suggestion. The group uses your usual currency; tap <b class="ui">Change</b> to pick another.</li>
+          </ol>
+          <p>Tap <b class="ui">Create</b>, then add the first expense or open the group.</p>
+        </div>
+      </details>
+
+      <details id="getting-around">
+        <summary>Getting around the app</summary>
+        <div class="body">
+          <div class="tablewrap"><table>
+            <tr><th>Tab</th><th>What it's for</th></tr>
+            <tr><td>Home</td><td>Where you stand overall, Add expense, payments to confirm, and who to settle up with</td></tr>
+            <tr><td>Groups</td><td>All your groups, plus making or joining one</td></tr>
+            <tr><td>Activity</td><td>Every expense and payment across your groups, with filters and search</td></tr>
+            <tr><td>Profile</td><td>Your name, currency, PayID and account settings</td></tr>
+          </table></div>
+          <p>Pull down on any screen to refresh it. The bell on Home shows how many new notifications you have.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="groups" data-em="👥" data-title="Groups &amp; people">
+      <h2>👥 Groups &amp; people</h2>
+
+      <details id="invite">
+        <summary>How do I invite people to a group?</summary>
+        <div class="body">
+          <p>Open the group, tap the <b class="ui">⋯</b> button at the top right and choose <b class="ui">Share an invite link</b>. Send the link however you like. When they open it, they sign up (or log in) and join the group.</p>
+          <p>They can also go to <b class="ui">Groups</b>, tap <b class="ui">Join group</b> and paste the invite code or link.</p>
+          <p class="tip">You don't have to wait for people to join. Add them by name now (see the next question) and start adding expenses straight away.</p>
+        </div>
+      </details>
+
+      <details id="guests">
+        <summary>Can people join without creating an account?</summary>
+        <div class="body">
+          <p>Yes. Anyone can be added to a group by name, as a <b>guest</b>. Guests don't need the app, and you can include them in expenses and payments like anyone else. They show with a dashed outline in the group.</p>
+          <p><b>Their own view link.</b> Tap a guest's face in the group and use <b class="ui">Share [name]'s link</b>. It opens a private page in their web browser showing their balance, who they pay or get paid by, the expenses they're part of, and the owner's PayID if they owe the owner. It's view only. The card shows when the link was last opened, and you can <b class="ui">Turn off link</b> at any time.</p>
+          <p><b>Joining later.</b> When a guest opens an invite link and signs up, <span class="sic">sic<span class="sic-dot">.</span></span> asks "Are you one of these people?". They pick their name and keep their whole history.</p>
+        </div>
+      </details>
+
+      <details id="who-sees-what">
+        <summary>Who can see what in a group?</summary>
+        <div class="body">
+          <div class="tablewrap"><table>
+            <tr><th>Role</th><th>What they see</th></tr>
+            <tr><td>Owner</td><td>Everything in the group: every expense, payment, receipt and balance</td></tr>
+            <tr><td>Co-owner</td><td>The same as the owner (the owner chooses co-owners)</td></tr>
+            <tr><td>Member</td><td>The expenses they added or are part of, their own balance and share, and the group total</td></tr>
+            <tr><td>Guest</td><td>Nothing, unless someone shares their view link (see above)</td></tr>
+          </table></div>
+          <p>The owner can make someone a co-owner, hand the group over or remove someone: tap that person's face in the group.</p>
+        </div>
+      </details>
+
+      <details id="leave-close-delete">
+        <summary>How do I leave, close, hide or delete a group?</summary>
+        <div class="body">
+          <p>All of these are in the group's <b class="ui">⋯</b> menu.</p>
+          <ul>
+            <li><b>Close group</b> (owner and co-owners): ends the group for everyone once everyone's square and no payment is waiting to be confirmed. Nothing in a closed group can change. <b class="ui">Reopen group</b> undoes it.</li>
+            <li><b>Hide from my list</b>: puts the group away just for you. It comes back by itself when someone adds a new expense.</li>
+            <li><b>Leave group</b> (members): once you're settled up.</li>
+            <li><b>Delete group</b> (owner only).</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="expenses" data-em="🧾" data-title="Expenses &amp; splitting">
+      <h2>🧾 Expenses &amp; splitting</h2>
+
+      <details id="add-expense">
+        <summary>How do I add an expense?</summary>
+        <div class="body">
+          <ol>
+            <li>Tap <b class="ui">Add expense</b> on Home or on a group's page.</li>
+            <li>Type the amount and what it was for, e.g. "Pizza".</li>
+            <li>The line under the amount says who paid and how it's split ("Paid by you · Split equally between 3"). Tap it to change either.</li>
+            <li>Tap <b class="ui">Save</b>. Everyone's balances update straight away.</li>
+          </ol>
+          <p>From Home you can tap the group at the top to pick a different one.</p>
+        </div>
+      </details>
+
+      <details id="ways-to-split">
+        <summary>What are the ways to split?</summary>
+        <div class="body">
+          <div class="tablewrap"><table>
+            <tr><th>Split</th><th>How it works</th><th>Good for</th></tr>
+            <tr><td>Equally</td><td>Everyone ticked pays the same. Untick anyone who wasn't in it.</td><td>Most shared costs</td></tr>
+            <tr><td>Amounts</td><td>Type what each person pays. A line shows what's left until it adds up.</td><td>One thing paid in different portions</td></tr>
+            <tr><td>Percent</td><td>Each person's percentage; must add up to 100%.</td><td>Agreed splits, like 60/40 rent</td></tr>
+            <tr><td>Shares</td><td>Someone with 2 shares pays twice as much as someone with 1.</td><td>Couples or families</td></tr>
+            <tr><td>Items</td><td>Add lines for each thing and tap who had it.</td><td>Restaurant bills and shopping</td></tr>
+          </table></div>
+          <p>Every cent is accounted for: when a total doesn't divide evenly, the leftover cents go to some people so the shares always add up exactly.</p>
+        </div>
+      </details>
+
+      <details id="split-by-item">
+        <summary>How do I split a bill by item, with tax and tip?</summary>
+        <div class="body">
+          <p>Choose <b class="ui">Items</b> in the split panel and add a line for each dish or product, then tap who had it. A line shared by several people is split evenly between them.</p>
+          <p>Whatever the lines don't cover (the bill total minus the items) shows as <b>Everything else</b>. That's usually tax, tip or a service charge. Choose:</p>
+          <ul>
+            <li><b>In proportion</b>: whoever had more pays more. Best for a tip.</li>
+            <li><b>Split equally</b>: shared evenly between everyone ticked.</li>
+          </ul>
+          <p>If the lines add up to more than the total, <span class="sic">sic<span class="sic-dot">.</span></span> says by how much and won't save until it's fixed.</p>
+        </div>
+      </details>
+
+      <details id="saved-splits">
+        <summary>How do saved splits work?</summary>
+        <div class="body">
+          <p>If your group splits some costs the same way every time (say electricity 50/25/25), save it once and pick it with one tap.</p>
+          <ul>
+            <li><b>Save one:</b> set up an Equally, Percent or Shares split, tap <b class="ui">Save this split for later</b> and name it. (Amounts and Items only fit one bill, so they can't be saved.)</li>
+            <li><b>Use one:</b> saved splits show as buttons at the top of the split panel.</li>
+            <li><b>Default:</b> the owner or a co-owner can make one the group's default, so every new expense starts with it.</li>
+            <li><b>Manage:</b> the group's <b class="ui">⋯</b> menu → <b class="ui">Saved splits</b>.</li>
+          </ul>
+          <p>Editing or deleting a saved split never changes past expenses.</p>
+        </div>
+      </details>
+
+      <details id="categories">
+        <summary>What are categories?</summary>
+        <div class="body">
+          <p>Every expense has a category, like Food &amp; drink, Groceries, Transport or Bills &amp; utilities. <span class="sic">sic<span class="sic-dot">.</span></span> suggests one from what you type (for example "Uber to the airport" → Transport). Tap the <b class="ui">Category</b> row to pick a different one.</p>
+          <p>In <b class="ui">Activity</b>, use <b class="ui">All categories</b> to see only one kind of spending.</p>
+        </div>
+      </details>
+
+      <details id="edit-expense">
+        <summary>How do I edit or delete an expense?</summary>
+        <div class="body">
+          <p>Tap the expense to open it, then tap <b class="ui">Edit</b> or <b class="ui">Delete</b>. When you edit, the old version is kept in the expense's history so everyone can see what changed. Balances update straight away.</p>
+          <p>Expenses in a closed group can't be changed until the group is reopened.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="receipts" data-em="📷" data-title="Receipts">
+      <h2>📷 Receipts</h2>
+
+      <details id="scan-receipt">
+        <summary>How do I scan a receipt?</summary>
+        <div class="body">
+          <ol>
+            <li>On a new expense, tap <b class="ui">Scan receipt</b> under the amount, then take a photo or choose one.</li>
+            <li>Keep the whole receipt in the picture, flat and in good light.</li>
+            <li>The shop name, total and each item fill in, and the split opens on Items. Check them, tap who had each item and save.</li>
+          </ol>
+          <p class="tip">Always check before you save: a blurry or crumpled receipt can be misread. You can scan up to 20 receipts a day.</p>
+        </div>
+      </details>
+
+      <details id="receipt-privacy">
+        <summary>Where does my receipt photo go?</summary>
+        <div class="body">
+          <p>The first time you scan, <span class="sic">sic<span class="sic-dot">.</span></span> asks before any photo is sent to be read by Anthropic's Claude AI. Only the photo is sent, not your name or your group. If you decline, nothing is sent and you can type expenses in as usual. You can change this any time in <b class="ui">Profile</b> → <b class="ui">Receipt scanning</b>.</p>
+          <p>The photo is kept with the expense. Anyone who can see the expense can see it. To delete it, open the expense and tap <b class="ui">Remove photo</b>.</p>
+          <p>More in the <a href="/privacy">privacy policy</a>.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="paying-back" data-em="🤝" data-title="Balances &amp; paying back">
+      <h2>🤝 Balances &amp; paying back</h2>
+
+      <details id="balances">
+        <summary>How does sic. work out who owes who?</summary>
+        <div class="body">
+          <p>Each expense adds to what people owe the person who paid, based on the split. <span class="sic">sic<span class="sic-dot">.</span></span> then adds everything up and works out the fewest payments to get everyone square. You'll see it as arrows under <b class="ui">Who owes whom</b> on the group's page.</p>
+          <p>Tap a person's face to see every expense and payment between the two of you, and what each one added.</p>
+        </div>
+      </details>
+
+      <details id="pay-back">
+        <summary>How do I pay someone back?</summary>
+        <div class="body">
+          <ol>
+            <li>Tap <b class="ui">Pay back</b> on a "You owe" card (on Home under To settle, or on the group's page).</li>
+            <li>The full amount is filled in. Tap <b class="ui">Pay a different amount</b> to pay part of it.</li>
+            <li>Pay them in your banking app, by cash or however you agreed. If they've added a PayID, it's shown with <b class="ui">Copy</b> buttons.</li>
+            <li>Slide the button to record that you've paid. They're asked to confirm it arrived.</li>
+          </ol>
+        </div>
+      </details>
+
+      <details id="confirm-payment">
+        <summary>Why is my payment "waiting to confirm"?</summary>
+        <div class="body">
+          <p>A payment only counts once the person who received the money agrees it arrived. Until then your balance doesn't change, and the payment shows with ⏳.</p>
+          <div class="tablewrap"><table>
+            <tr><th>Who records it</th><th>What happens</th></tr>
+            <tr><td>The person receiving the money</td><td>Counts straight away</td></tr>
+            <tr><td>Anyone paying a guest</td><td>Counts straight away</td></tr>
+            <tr><td>The payer, or someone else</td><td>Waits for the receiver to confirm</td></tr>
+          </table></div>
+          <p>The receiver sees "says they paid you · did it arrive?" on Home and taps <b class="ui">Confirm</b> or <b class="ui">Not received</b>. It never confirms itself. You can tap the waiting payment to remind them (once a day) or cancel it.</p>
+        </div>
+      </details>
+
+      <details id="fix-payment">
+        <summary>How do I fix or undo a payment?</summary>
+        <div class="body">
+          <p>Tap the payment to open it. <b class="ui">Correct</b> changes the amount or note (the old one is kept in the history), and <b class="ui">Undo</b> removes a payment recorded by mistake. A new amount entered by anyone but the receiver needs confirming again.</p>
+        </div>
+      </details>
+
+      <details id="payid">
+        <summary>What is PayID and who can see mine?</summary>
+        <div class="body">
+          <p>PayID lets people pay you from their Australian banking app with your mobile number, email or ABN instead of bank details. Add yours in <b class="ui">Profile</b> → <b class="ui">PayID</b> (shown when your currency is AUD).</p>
+          <p>It's only shown to members of Australian-dollar groups <b>you own</b>, never in groups where you're just a member. You can remove it at any time.</p>
+        </div>
+      </details>
+
+      <details id="nudge">
+        <summary>How do I remind someone to pay?</summary>
+        <div class="body">
+          <p>Owners and co-owners see a <b class="ui">Nudge</b> button on "owes you" cards and a <b class="ui">Remind</b> button under anyone who owes. It sends them a notification, once a day at most.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="recurring" data-em="🔁" data-title="Recurring bills">
+      <h2>🔁 Recurring bills</h2>
+
+      <details id="set-up-recurring">
+        <summary>How do I set up a recurring expense?</summary>
+        <div class="body">
+          <ol>
+            <li>Add an expense as usual, then tap <b class="ui">Recurring</b> under "Paid by".</li>
+            <li>Pick <b>Weekly</b>, <b>Fortnightly</b> or <b>Monthly</b>, and choose the first date.</li>
+            <li>Set when it ends (never, on a date, or after a number of times) and a heads-up (same day up to a week before).</li>
+            <li>For bills like power, switch on <b class="ui">Amount changes each time</b>.</li>
+          </ol>
+          <p>Fixed amounts are added automatically on each date and everyone in them is told. For amounts that change, a card asks for this time's amount on the date.</p>
+        </div>
+      </details>
+
+      <details id="manage-recurring">
+        <summary>How do I pause, change or stop one?</summary>
+        <div class="body">
+          <p>On the group's page, tap <b class="ui">Recurring</b> (or <b class="ui">See all</b>) and open the one you want. You can <b class="ui">Pause</b>, <b class="ui">Edit</b> (changes future ones only, including the next date) or <b class="ui">Stop</b> it. Expenses already added stay as they are.</p>
+          <p>Recurring bills are visible to the group owner, co-owners and whoever set them up.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="currencies" data-em="💱" data-title="Currencies">
+      <h2>💱 Currencies</h2>
+
+      <details id="other-currency">
+        <summary>How do I add an expense paid in another currency?</summary>
+        <div class="body">
+          <p>Every group settles up in its own currency. If you paid in something else, tap the currency symbol next to the amount (for example <b class="ui">A$ ▾</b>), pick what you paid in and type the amount from the receipt. There are 30 currencies to choose from.</p>
+          <p><span class="sic">sic<span class="sic-dot">.</span></span> shows what it comes to in the group's currency, using the European Central Bank's daily rate. Tap that line to type your own rate or the exact amount your bank charged.</p>
+        </div>
+      </details>
+
+      <details id="conversion">
+        <summary>How does currency conversion work?</summary>
+        <div class="body">
+          <ul>
+            <li><b>The rate is locked when you save.</b> If rates move later, the expense doesn't change.</li>
+            <li><b>Balances stay in the group's currency</b>, so nobody has to convert anything to settle up.</li>
+            <li><b>What you actually paid is kept</b> and shown on the expense, e.g. "Paid JP¥10,000".</li>
+          </ul>
+          <p>Recurring expenses are always in the group's currency.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="account" data-em="⚙️" data-title="Account &amp; settings">
+      <h2>⚙️ Account &amp; settings</h2>
+
+      <details id="change-details">
+        <summary>How do I change my name, currency or password?</summary>
+        <div class="body">
+          <p>Go to <b class="ui">Profile</b> and tap the row you want to change: <b class="ui">Name</b>, <b class="ui">Default currency</b> or <b class="ui">Change password</b>. Your default currency only applies to new groups; existing groups keep theirs.</p>
+        </div>
+      </details>
+
+      <details id="notifications">
+        <summary>What notifications will I get?</summary>
+        <div class="body">
+          <p>Tap the bell on Home to see them. You're told when someone adds you to a group, reminds you to settle up, says they paid you, confirms or rejects your payment, makes you a co-owner or owner, and when a recurring bill is coming up or has been added.</p>
+          <p>Notifications on your phone's lock screen are coming soon.</p>
+        </div>
+      </details>
+
+      <details id="delete-account">
+        <summary>How do I delete my account?</summary>
+        <div class="body">
+          <p>Go to <b class="ui">Profile</b> → <b class="ui">Security</b> → <b class="ui">Delete account</b> and enter your password to confirm.</p>
+          <ul>
+            <li>You need to be settled up in every group first, so nobody is left out of pocket.</li>
+            <li>Groups you own pass to a co-owner, or otherwise to the longest-standing member.</li>
+            <li>Your name stays on past expenses so the group's history still makes sense.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details id="privacy">
+        <summary>Is my information private?</summary>
+        <div class="body">
+          <p>Yes. <span class="sic">sic<span class="sic-dot">.</span></span> keeps only what it needs to split costs, stores it in Australia, and never sells it or shows you ads. It never moves money or asks for your bank login. Read the full <a href="/privacy">privacy policy</a>.</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="cat" id="troubleshooting" data-em="🛠️" data-title="Troubleshooting">
+      <h2>🛠️ Troubleshooting</h2>
+
+      <details id="offline">
+        <summary>Can I use sic. without signal?</summary>
+        <div class="body">
+          <p>Yes, for the basics. Your groups and balances are kept on your phone, and new expenses and payments you add without signal are saved and marked <b>Waiting to sync</b>. They're sent as soon as you're back online.</p>
+          <p>Editing existing items, recurring bills, scanning receipts and invites need a connection.</p>
+        </div>
+      </details>
+
+      <details id="already-signed-in">
+        <summary>Sign up takes me straight into the app</summary>
+        <div class="body">
+          <p>That means you're already logged in on this browser, so <span class="sic">sic<span class="sic-dot">.</span></span> takes you to your groups. To create a different account, log out first (<b class="ui">Profile</b> → <b class="ui">Sign out</b>) or use a private browser window.</p>
+        </div>
+      </details>
+
+      <details id="balance-not-changed">
+        <summary>I paid someone but my balance hasn't changed</summary>
+        <div class="body">
+          <p>The payment is probably waiting for them to confirm it arrived. See <a href="#confirm-payment">Why is my payment "waiting to confirm"?</a>. You can send them a reminder from the payment.</p>
+        </div>
+      </details>
+
+      <details id="cant-add">
+        <summary>I can't add an expense to a group</summary>
+        <div class="body">
+          <p>The group has probably been closed. A closed group says when it was closed and by whom, and nothing in it can change. The owner or a co-owner can tap <b class="ui">Reopen group</b> in the <b class="ui">⋯</b> menu.</p>
+        </div>
+      </details>
+
+      <details id="cant-leave">
+        <summary>I can't leave a group or delete my account</summary>
+        <div class="body">
+          <p>You need to be settled up first. Check <b class="ui">To settle</b> on Home: pay back what you owe, and make sure any payments waiting to be confirmed have been confirmed.</p>
+        </div>
+      </details>
+    </section>
+
+    <p class="empty" id="empty">No answers match <b id="empty-q"></b>. Try a different word, like "split", "PayID" or "guest".</p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="/"><img class="light-only" src="logo-dark.png" alt="sic. home"><img class="dark-only" src="logo-light.png" alt="sic. home"></a>
+    <span>© 2026 <span class="sic">sic<span class="sic-dot">.</span></span> · sharing is caring · <a href="/help">Help</a> · <a href="/privacy">Privacy policy</a></span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var cats = Array.prototype.slice.call(document.querySelectorAll('.cat'));
+  var topics = document.getElementById('topics');
+  cats.forEach(function (c) {
+    var a = document.createElement('a');
+    a.className = 'topic'; a.href = '#' + c.id;
+    var n = c.querySelectorAll('details').length;
+    a.innerHTML = '<span class="em" aria-hidden="true">' + c.dataset.em + '</span><b>' + c.dataset.title + '</b><span class="n">' + n + (n === 1 ? ' article' : ' articles') + '</span>';
+    topics.appendChild(a);
+  });
+
+  // Open an article linked with #id.
+  function openHash() {
+    var el = location.hash && document.getElementById(location.hash.slice(1));
+    if (el && el.tagName === 'DETAILS') { el.open = true; el.scrollIntoView(); }
+  }
+  window.addEventListener('hashchange', openHash);
+  openHash();
+
+  var q = document.getElementById('q'), empty = document.getElementById('empty'), emptyQ = document.getElementById('empty-q');
+  var items = Array.prototype.slice.call(document.querySelectorAll('details')).map(function (d) {
+    return { el: d, text: d.textContent.toLowerCase().replace(/\s+/g, ' '), title: d.querySelector('summary').textContent.toLowerCase() };
+  });
+  var searched = false;
+  q.addEventListener('input', function () {
+    var words = q.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    var shown = 0, hits = [];
+    items.forEach(function (it) {
+      var hit = words.every(function (w) { return it.text.indexOf(w) !== -1; });
+      it.el.style.display = hit ? '' : 'none';
+      it.el.open = false;
+      if (hit) { shown++; hits.push(it); }
+    });
+    if (words.length && hits.length) {
+      // Open the articles whose titles match; if none do, open the first match.
+      var inTitle = hits.filter(function (it) { return words.some(function (w) { return it.title.indexOf(w) !== -1; }); });
+      (inTitle.length ? inTitle.slice(0, 3) : hits.slice(0, 1)).forEach(function (it) { it.el.open = true; });
+    }
+    cats.forEach(function (c) {
+      var any = Array.prototype.some.call(c.querySelectorAll('details'), function (d) { return d.style.display !== 'none'; });
+      c.style.display = any ? '' : 'none';
+    });
+    topics.style.display = words.length ? 'none' : '';
+    empty.style.display = shown ? 'none' : 'block';
+    emptyQ.textContent = '"' + q.value.trim() + '"';
+    if (words.length && !searched) { searched = true; document.getElementById('articles').scrollIntoView({ block: 'start' }); }
+    if (!words.length) searched = false;
+  });
+})();
+</script>
+
+</body>
+</html>
