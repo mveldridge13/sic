@@ -81,8 +81,8 @@ export function YouCard({
   const payBack = () =>
     router.push({
       pathname: '/settle',
-      // Less anything already sent and waiting to be confirmed.
-      params: { groupId: group.id, from: iOwe ? myId : other, to: iOwe ? other : myId, amount: String(amount - sent) },
+      // The full amount; the pay screen takes off anything already sent and waiting to be confirmed.
+      params: { groupId: group.id, from: iOwe ? myId : other, to: iOwe ? other : myId, amount: String(amount) },
     });
 
   // You've already recorded paying them back and it's waiting for them to confirm: say so
@@ -128,7 +128,9 @@ export function YouCard({
         ) : null}
       </View>
       {iOwe ? (
-        sent >= amount ? null : <Pill label={sent > 0 ? 'Pay the rest' : 'Pay back'} solid onPress={payBack} />
+        sent >= amount ? null : (
+          <Pill label={sent > 0 ? 'Pay the rest' : 'Pay back'} solid onPress={payBack} />
+        )
       ) : canRemind ? (
         nudged ? (
           <Text variant="label" muted>

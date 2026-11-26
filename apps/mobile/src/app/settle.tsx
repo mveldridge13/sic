@@ -68,7 +68,19 @@ export default function SettleScreen() {
   const group = data.groups.find((g) => g.id === groupId);
   const mutation = isEdit ? correctSettlement : recordSettlement;
 
-  const suggested = isEdit ? 0 : Number(params.amount) || 0;
+  // `amount` is the full amount owed. Payments already recorded from `from` to `to` in this group that
+  // are still waiting to be confirmed don't count towards balances yet, so take them off here: otherwise
+  // every visit (a reminder notification, Settle up) offers the full amount again and records it again.
+  // A recurring period (expenseId) tracks its own waiting payments, so it's left as it is.
+  const owed = isEdit ? 0 : Number(params.amount) || 0;
+  const sentAlready =
+    isEdit || params.expenseId
+      ? 0
+      : data.pendingPayments
+          .filter((p) => p.groupId === groupId && p.fromUserId === from && p.toUserId === to)
+          .reduce((sum, p) => sum + p.amount, 0);
+  const suggested = Math.max(0, owed - sentAlready);
+  const allSent = owed > 0 && sentAlready >= owed;
   const [text, setText] = useState(editing ? centsToDecimalString(editing.amount) : suggested ? centsToDecimalString(suggested) : '');
   const [note, setNote] = useState(editing?.note ?? params.period ?? '');
   // The full amount is filled in; other amounts and a note are one tap away.
@@ -151,10 +163,25 @@ export default function SettleScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xl, paddingTop: insets.top + space.xl, gap: space.md }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: space.xl,
+            paddingTop: insets.top + space.xl,
+            gap: space.md,
+          }}>
           <Animated.View
             entering={ZoomIn.springify().damping(12)}
-            style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
+            style={{
+              width: 112,
+              height: 112,
+              borderRadius: 56,
+              backgroundColor: c.surfaceAlt,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
             <Text style={{ fontSize: 52 }}>⏳</Text>
           </Animated.View>
           <Animated.View entering={ZoomIn.delay(120).springify().damping(14)}>
@@ -188,7 +215,15 @@ export default function SettleScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xl, paddingTop: insets.top + space.xl, gap: space.md }}>
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: space.xl,
+            paddingTop: insets.top + space.xl,
+            gap: space.md,
+          }}>
           <Animated.View
             entering={ZoomIn.springify().damping(12)}
             style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: c.warm, alignItems: 'center', justifyContent: 'center' }}>
@@ -216,6 +251,25 @@ export default function SettleScreen() {
         </View>
         <Confetti fire={confetti} />
       </View>
+    );
+  }
+
+  // Everything owed is already recorded and waiting for the receiver: nothing to pay, no slider.
+  if (allSent) {
+    return (
+      <HeroScreen nav="close" eyebrow={`${group.icon ? `${group.icon} ` : ''}${group.name}`} title={`⏳ Waiting for ${receiver}`}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Gutter>
+          <Notice tone="info">
+            {from === myId ? 'You’ve' : `${fromName} has`} already sent {money(sentAlready)} to {receiver}. It counts once {receiver}{' '}
+            confirms it arrived, so there’s nothing more to pay.
+          </Notice>
+          <Text variant="caption" muted>
+            Recorded one by mistake? Open it from Activity and tap Cancel.
+          </Text>
+          <Button label="Done" onPress={() => goBack()} />
+        </Gutter>
+      </HeroScreen>
     );
   }
 
@@ -304,6 +358,11 @@ export default function SettleScreen() {
       ) : null}
 
       <Gutter>
+        {sentAlready > 0 ? (
+          <Notice tone="info">
+            ⏳ {money(sentAlready)} already sent, waiting for {receiver} to confirm. This is what’s left.
+          </Notice>
+        ) : null}
         {over ? (
           <Notice tone="info">
             {toName} would then owe {fromName === 'You' ? 'you' : fromName} the difference.

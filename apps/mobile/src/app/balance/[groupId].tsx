@@ -204,8 +204,7 @@ export default function BalanceBreakdownScreen() {
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Same person',
-            onPress: () =>
-              mergeGuest.mutate({ groupId: group.id, guestId: otherId, userId }, { onSuccess: () => goBack() }),
+            onPress: () => mergeGuest.mutate({ groupId: group.id, guestId: otherId, userId }, { onSuccess: () => goBack() }),
           },
         ],
       );
@@ -304,21 +303,30 @@ export default function BalanceBreakdownScreen() {
             ) : (
               // The same chat bubbles as the group's feed; the right side shows what each adds between you two.
               <BubbleDays
-                items={pair.rows.map(
-                  (r): ActivityItem =>
-                    r.kind === 'expense'
-                      ? { kind: 'expense', id: r.id, groupId: group.id, at: r.at, title: r.title, amount: r.total, actorId: r.payerId, myEffect: 0, involved: true }
-                      : {
-                          kind: 'settlement',
-                          id: r.id,
-                          groupId: group.id,
-                          at: r.at,
-                          fromUserId: r.payerId,
-                          toUserId: r.payerId === myId ? otherId : myId,
-                          amount: r.total,
-                          myEffect: 0,
-                          involved: true,
-                        },
+                items={pair.rows.map((r): ActivityItem =>
+                  r.kind === 'expense'
+                    ? {
+                        kind: 'expense',
+                        id: r.id,
+                        groupId: group.id,
+                        at: r.at,
+                        title: r.title,
+                        amount: r.total,
+                        actorId: r.payerId,
+                        myEffect: 0,
+                        involved: true,
+                      }
+                    : {
+                        kind: 'settlement',
+                        id: r.id,
+                        groupId: group.id,
+                        at: r.at,
+                        fromUserId: r.payerId,
+                        toUserId: r.payerId === myId ? otherId : myId,
+                        amount: r.total,
+                        myEffect: 0,
+                        involved: true,
+                      },
                 )}
                 render={(item) => {
                   const r = pair.rows.find((x) => x.id === item.id)!;
@@ -349,7 +357,12 @@ export default function BalanceBreakdownScreen() {
           {pair.total !== 0 ? (
             sent >= Math.abs(pair.total) ? (
               // Already recorded in full, waiting for the receiver: don't offer to record it again.
-              <Button kind="secondary" disabled onPress={() => {}} label={iPay ? `⏳ Waiting for ${they} to confirm` : '⏳ Waiting for you to confirm'} />
+              <Button
+                kind="secondary"
+                disabled
+                onPress={() => {}}
+                label={iPay ? `⏳ Waiting for ${they} to confirm` : '⏳ Waiting for you to confirm'}
+              />
             ) : (
               <Button
                 label={
@@ -366,7 +379,7 @@ export default function BalanceBreakdownScreen() {
                       groupId: group.id,
                       from: payerId,
                       to: receiverId,
-                      amount: String(Math.abs(pair.total) - sent),
+                      amount: String(Math.abs(pair.total)),
                     },
                   })
                 }
@@ -397,7 +410,12 @@ export default function BalanceBreakdownScreen() {
                   <Button kind="secondary" size="small" label="Cancel" onPress={() => setChoosingSame(false)} />
                 </Card>
               ) : (
-                <Button kind="secondary" size="small" label={`${they} has joined? Link them to their account`} onPress={() => setChoosingSame(true)} />
+                <Button
+                  kind="secondary"
+                  size="small"
+                  label={`${they} has joined? Link them to their account`}
+                  onPress={() => setChoosingSame(true)}
+                />
               )}
               {mergeGuest.error ? <Notice>{mergeGuest.error.message}</Notice> : null}
             </View>
@@ -406,8 +424,8 @@ export default function BalanceBreakdownScreen() {
             <>
               <Button label={`Invite ${they} to join`} onPress={inviteGuest} />
               <Text variant="caption" muted>
-                {they} was added by name and doesn’t have a sic account yet. When they accept this invite, everything recorded for them
-                here becomes theirs.
+                {they} was added by name and doesn’t have a sic account yet. When they accept this invite, everything recorded for them here
+                becomes theirs.
               </Text>
               <GuestLinkCard groupId={group.id} groupName={group.name} myRole={group.myRole} guestId={otherId} guestName={they} />
             </>
