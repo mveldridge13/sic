@@ -209,6 +209,8 @@ export type Database = {
           guest_id: string | null;
           id: string;
           invited_by: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
           token: string;
         };
         ComputedFields: never;
@@ -221,6 +223,8 @@ export type Database = {
           guest_id?: string | null;
           id?: string;
           invited_by: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
           token?: string;
         };
         Update: {
@@ -232,6 +236,8 @@ export type Database = {
           guest_id?: string | null;
           id?: string;
           invited_by?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
           token?: string;
         };
         Relationships: [
@@ -259,6 +265,13 @@ export type Database = {
           {
             foreignKeyName: 'group_invites_invited_by_fkey';
             columns: ['invited_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'group_invites_revoked_by_fkey';
+            columns: ['revoked_by'];
             isOneToOne: false;
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
@@ -370,6 +383,85 @@ export type Database = {
           },
         ];
       };
+      guest_claims: {
+        Row: {
+          created_at: string;
+          group_id: string;
+          guest_id: string;
+          id: string;
+          merged_by: string | null;
+          moved: NonNullable<Json>;
+          undone_at: string | null;
+          undone_by: string | null;
+          user_id: string;
+          via: string;
+          was_member: boolean;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          group_id: string;
+          guest_id: string;
+          id?: string;
+          merged_by?: string | null;
+          moved: NonNullable<Json>;
+          undone_at?: string | null;
+          undone_by?: string | null;
+          user_id: string;
+          via: string;
+          was_member: boolean;
+        };
+        Update: {
+          created_at?: string;
+          group_id?: string;
+          guest_id?: string;
+          id?: string;
+          merged_by?: string | null;
+          moved?: NonNullable<Json>;
+          undone_at?: string | null;
+          undone_by?: string | null;
+          user_id?: string;
+          via?: string;
+          was_member?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'guest_claims_group_id_fkey';
+            columns: ['group_id'];
+            isOneToOne: false;
+            referencedRelation: 'groups';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_claims_guest_id_fkey';
+            columns: ['guest_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_claims_merged_by_fkey';
+            columns: ['merged_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_claims_undone_by_fkey';
+            columns: ['undone_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'guest_claims_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       guest_links: {
         Row: {
           created_at: string;
@@ -471,6 +563,7 @@ export type Database = {
         Row: {
           actor_id: string | null;
           amount_cents: number | null;
+          claim_id: string | null;
           created_at: string;
           group_id: string | null;
           id: string;
@@ -484,6 +577,7 @@ export type Database = {
         Insert: {
           actor_id?: string | null;
           amount_cents?: number | null;
+          claim_id?: string | null;
           created_at?: string;
           group_id?: string | null;
           id?: string;
@@ -496,6 +590,7 @@ export type Database = {
         Update: {
           actor_id?: string | null;
           amount_cents?: number | null;
+          claim_id?: string | null;
           created_at?: string;
           group_id?: string | null;
           id?: string;
@@ -511,6 +606,13 @@ export type Database = {
             columns: ['actor_id'];
             isOneToOne: false;
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_claim_id_fkey';
+            columns: ['claim_id'];
+            isOneToOne: false;
+            referencedRelation: 'guest_claims';
             referencedColumns: ['id'];
           },
           {
@@ -691,6 +793,31 @@ export type Database = {
             referencedColumns: ['id'];
           },
         ];
+      };
+      receipt_trash: {
+        Row: {
+          attempts: number;
+          last_error: string | null;
+          path: string;
+          queued_at: string;
+          tried_at: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          attempts?: number;
+          last_error?: string | null;
+          path: string;
+          queued_at?: string;
+          tried_at?: string | null;
+        };
+        Update: {
+          attempts?: number;
+          last_error?: string | null;
+          path?: string;
+          queued_at?: string;
+          tried_at?: string | null;
+        };
+        Relationships: [];
       };
       recurring_expenses: {
         Row: {
@@ -875,6 +1002,7 @@ export type Database = {
           occurred_at: string;
           replaces_id: string | null;
           responded_at: string | null;
+          responded_by: string | null;
           status: Database['public']['Enums']['settlement_status'];
           to_user_id: string;
         };
@@ -891,6 +1019,7 @@ export type Database = {
           occurred_at?: string;
           replaces_id?: string | null;
           responded_at?: string | null;
+          responded_by?: string | null;
           status?: Database['public']['Enums']['settlement_status'];
           to_user_id: string;
         };
@@ -906,6 +1035,7 @@ export type Database = {
           occurred_at?: string;
           replaces_id?: string | null;
           responded_at?: string | null;
+          responded_by?: string | null;
           status?: Database['public']['Enums']['settlement_status'];
           to_user_id?: string;
         };
@@ -943,6 +1073,13 @@ export type Database = {
             columns: ['replaces_id'];
             isOneToOne: false;
             referencedRelation: 'settlements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'settlements_responded_by_fkey';
+            columns: ['responded_by'];
+            isOneToOne: false;
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
           {
@@ -1081,6 +1218,7 @@ export type Database = {
           guest_name: string;
         }[];
       };
+      is_deleted_member: { Args: { p_user_id: string }; Returns: boolean };
       is_group_closed: { Args: { p_group_id: string }; Returns: boolean };
       is_group_member: { Args: { p_group_id: string }; Returns: boolean };
       is_group_owner: { Args: { p_group_id: string }; Returns: boolean };
@@ -1089,13 +1227,18 @@ export type Database = {
       leave_group: { Args: { p_group_id: string }; Returns: undefined };
       mark_notifications_read: { Args: Record<PropertyKey, never>; Returns: undefined };
       member_net_balance: { Args: { p_group_id: string; p_user_id: string }; Returns: number };
-      move_guest_to: { Args: { p_group_id: string; p_guest_id: string; p_user_id: string }; Returns: undefined };
+      merge_guest: { Args: { p_group_id: string; p_guest_id: string; p_user_id: string }; Returns: undefined };
+      move_guest_to: { Args: { p_group_id: string; p_guest_id: string; p_user_id: string }; Returns: Json };
       my_group_summaries: { Args: Record<PropertyKey, never>; Returns: Json };
       my_notifications: {
         Args: Record<PropertyKey, never>;
         Returns: {
           actor_name: string;
           amount_cents: number;
+          claim_guest_name: string;
+          claim_id: string;
+          claim_undone: boolean;
+          claim_via: string;
           created_at: string;
           group_currency: string;
           group_icon: string;
@@ -1117,6 +1260,23 @@ export type Database = {
           my_share: number;
         }[];
       };
+      notify_group_managers: {
+        Args: { p_actor: string; p_claim?: string; p_group_id: string; p_include_me?: boolean; p_kind: string };
+        Returns: undefined;
+      };
+      open_invites: {
+        Args: { p_group_id: string };
+        Returns: {
+          created_at: string;
+          expires_at: string;
+          guest_id: string;
+          guest_name: string;
+          id: string;
+          invited_by: string;
+          invited_by_name: string;
+          token: string;
+        }[];
+      };
       owns_group_with: { Args: { p_user_id: string }; Returns: boolean };
       payments_to_confirm: {
         Args: Record<PropertyKey, never>;
@@ -1131,9 +1291,15 @@ export type Database = {
           group_name: string;
           id: string;
           occurred_at: string;
+          to_name: string;
+          to_user_id: string;
         }[];
       };
+      queue_orphan_receipts: { Args: Record<PropertyKey, never>; Returns: number };
       receipt_group: { Args: { p_name: string }; Returns: string };
+      receipts_not_removed: { Args: { p_error: string; p_paths: string[] }; Returns: undefined };
+      receipts_removed: { Args: { p_paths: string[] }; Returns: undefined };
+      receipts_to_remove: { Args: { p_limit?: number }; Returns: string[] };
       record_settlement: {
         Args: {
           p_amount_cents: number;
@@ -1177,8 +1343,10 @@ export type Database = {
       remove_member: { Args: { p_group_id: string; p_user_id: string }; Returns: undefined };
       remove_payid: { Args: Record<PropertyKey, never>; Returns: undefined };
       reopen_group: { Args: { p_group_id: string }; Returns: undefined };
+      replace_invite: { Args: { p_invite_id: string }; Returns: string };
       require_user: { Args: Record<PropertyKey, never>; Returns: string };
       respond_to_payment: { Args: { p_received: boolean; p_settlement_id: string }; Returns: undefined };
+      retire_account: { Args: { p_user_id: string }; Returns: undefined };
       run_recurring: { Args: { p_only?: string }; Returns: number };
       save_split: { Args: { p_group_id: string; p_method: string; p_name: string; p_shares: Json }; Returns: string };
       set_co_owner: { Args: { p_co_owner: boolean; p_group_id: string; p_user_id: string }; Returns: undefined };
@@ -1211,6 +1379,8 @@ export type Database = {
       stop_recurring: { Args: { p_id: string }; Returns: undefined };
       transfer_ownership: { Args: { p_group_id: string; p_new_owner_id: string }; Returns: undefined };
       turn_off_guest_link: { Args: { p_group_id: string; p_guest_id: string }; Returns: undefined };
+      turn_off_invite: { Args: { p_invite_id: string }; Returns: undefined };
+      undo_guest_claim: { Args: { p_claim_id: string }; Returns: undefined };
       update_expense: {
         Args: {
           p_amount_cents: number;

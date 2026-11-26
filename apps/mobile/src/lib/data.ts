@@ -33,6 +33,7 @@ import {
   withTimeout,
   type OutboxEntry,
 } from './offline';
+import { emptyReceiptTrash } from './receipts';
 import { supabase } from './supabase';
 
 /**
@@ -47,6 +48,11 @@ export interface Person {
   name: string;
   /** Added by name, without a sic account yet. */
   isGuest?: boolean;
+  /**
+   * Stands in for someone who deleted their account ("Deleted member 1"). Their balance and
+   * history stay, but they can't be invited, sent a link, or put in new expenses.
+   */
+  deleted?: boolean;
 }
 
 export interface Group {
@@ -57,6 +63,8 @@ export interface Group {
   icon: string | null;
   /** Current members only. People who left keep their history and still appear in expenses. */
   memberIds: string[];
+  /** Members who can be put in a new expense or split: everyone but deleted members. */
+  pickableIds: string[];
   roles: Record<string, GroupRole>;
   /** The signed-in user's role in this group. */
   myRole: GroupRole;
@@ -157,6 +165,8 @@ export interface PaymentToConfirm {
   group: { id: string; name: string; icon: string | null; currency: string };
   fromUserId: string;
   fromName: string;
+  /** Set when it was paid to a deleted member, and you're answering for them as owner or co-owner. */
+  forDeletedName: string | null;
   amount: Cents;
   occurredAt: string;
 }
@@ -258,7 +268,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
       .from('groups')
       .select(
         `id, name, currency, icon, created_at, closed_at, closed_by,
-         group_members ( user_id, role, left_at, profiles ( id, name, is_guest ) ),
+         group_members ( user_id, role, left_at, profiles ( id, name, is_guest, deleted_at ) ),
          expenses ( id, description, amount_cents, payer_id, created_by, split_method, occurred_at,
                     created_at, updated_at, deleted_at, items, receipt_path,
                     original_currency, original_amount, exchange_rate, rate_date, rate_source, category,
@@ -351,7 +361,14 @@ async function fetchTally(myId: string): Promise<TallyData> {
     let myRole: GroupRole = 'member';
     for (const m of g.group_members) {
       // Keep names of people who left so their past expenses still read correctly.
-      if (m.profiles) data.people[m.profiles.id] = { id: m.profiles.id, name: m.profiles.name, isGuest: m.profiles.is_guest };
+      if (m.profiles) {
+        data.people[m.profiles.id] = {
+          id: m.profiles.id,
+          name: m.profiles.name,
+          isGuest: m.profiles.is_guest,
+          deleted: m.profiles.is_guest && !!m.profiles.deleted_at,
+        };
+      }
       if (m.left_at) continue;
       memberIds.push(m.user_id);
       roles[m.user_id] = m.role;
@@ -363,6 +380,7 @@ async function fetchTally(myId: string): Promise<TallyData> {
       currency: g.currency,
       icon: g.icon,
       memberIds,
+      pickableIds: memberIds.filter((id) => !data.people[id]?.deleted),
       roles,
       myRole,
       hiddenByMe: hidden.has(g.id),
@@ -833,7 +851,10 @@ export function useExchangeRate(from: string | undefined, to: string | undefined
   });
 }
 
-/** Soft delete: the expense is hidden and its last state is kept in expense_revisions. */
+/**
+ * Delete an expense for good: its splits and edit history go with it. If it had a receipt photo,
+ * the server deletes that too (it's queued in the same step, then emptyReceiptTrash does it).
+ */
 export function useDeleteExpense() {
   return useInvalidating(async (expenseId: string) => {
     // Still waiting to sync: it only exists on this phone.
@@ -841,27 +862,24 @@ export function useDeleteExpense() {
       removeFromOutbox(expenseId);
       return;
     }
-    const { data: row } = await supabase.from('expenses').select('receipt_path').eq('id', expenseId).maybeSingle();
     const { error } = await supabase.rpc('delete_expense', { p_expense_id: expenseId });
     if (error) throw error;
-    // Its receipt photo goes too. If this fails (e.g. offline) the expense is still deleted.
-    if (row?.receipt_path) await supabase.storage.from('receipts').remove([row.receipt_path]);
+    emptyReceiptTrash();
   });
 }
 
 /**
- * Delete an expense's receipt photo for good and keep the expense. Whoever can edit the expense
- * can do this. The file goes first (only possible through Storage), then it's detached.
+ * Delete an expense's receipt photo for good and keep the expense, and what was read from the
+ * photo. Whoever can edit the expense can do this. The server deletes the file.
  */
 export function useRemoveReceipt() {
-  return useInvalidating(async ({ expenseId, path }: { expenseId: string; path: string }) => {
-    const { data: removed, error: removeError } = await supabase.storage.from('receipts').remove([path]);
-    if (removeError) throw removeError;
-    // Storage reports success even when it wasn't allowed to delete anything.
-    if (!removed?.length) throw new Error('Couldn’t remove the photo. Only the person who added this expense, or the group owner, can.');
+  return useInvalidating(async ({ expenseId }: { expenseId: string; path: string }) => {
     // The function takes null to detach the photo; the generated types don't know it's nullable.
     const { error } = await supabase.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: null as unknown as string });
-    if (error) throw error;
+    if (error) {
+      throw error.code === 'P0002' ? new Error('Couldn’t remove the photo. Only the person who added this expense, or the group owner, can.') : error;
+    }
+    emptyReceiptTrash();
   });
 }
 
@@ -1018,6 +1036,77 @@ export function useRemoveMember() {
   });
 }
 
+/**
+ * Owner or co-owner: a member with an account is the same person as a guest. The guest's history
+ * becomes theirs. It can be undone from the notification (useUndoGuestClaim).
+ */
+export function useMergeGuest() {
+  return useInvalidating(async (input: { groupId: string; guestId: string; userId: string }) => {
+    const { error } = await supabase.rpc('merge_guest', { p_group_id: input.groupId, p_guest_id: input.guestId, p_user_id: input.userId });
+    if (error) throw error;
+  });
+}
+
+/** Owner or co-owner: undo someone taking a guest's place. The guest's history goes back to them. */
+export function useUndoGuestClaim() {
+  return useInvalidating(async (claimId: string) => {
+    const { error } = await supabase.rpc('undo_guest_claim', { p_claim_id: claimId });
+    if (error) throw error;
+  });
+}
+
+/** An invite that still works: a group link, or one sent to a particular guest. */
+export interface OpenInvite {
+  id: string;
+  token: string;
+  guestId: string | null;
+  guestName: string | null;
+  invitedById: string | null;
+  invitedByName: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
+/** Owner and co-owners: the group's invites that still work. */
+export function useOpenInvites(groupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['open-invites', groupId],
+    enabled: enabled && !!groupId,
+    queryFn: async (): Promise<OpenInvite[]> => {
+      const { data, error } = await supabase.rpc('open_invites', { p_group_id: groupId });
+      if (error) throw error;
+      return (data ?? []).map((i) => ({
+        id: i.id,
+        token: i.token,
+        guestId: i.guest_id,
+        guestName: i.guest_name,
+        invitedById: i.invited_by,
+        invitedByName: i.invited_by_name,
+        createdAt: i.created_at,
+        expiresAt: i.expires_at,
+      }));
+    },
+  });
+}
+
+/** Stop an invite working. With `replace`, also make a fresh one of the same kind and return its code. */
+export function useTurnOffInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ inviteId, replace }: { inviteId: string; groupId: string; replace?: boolean }): Promise<string | null> => {
+      if (replace) {
+        const { data, error } = await supabase.rpc('replace_invite', { p_invite_id: inviteId });
+        if (error) throw error;
+        return data;
+      }
+      const { error } = await supabase.rpc('turn_off_invite', { p_invite_id: inviteId });
+      if (error) throw error;
+      return null;
+    },
+    onSettled: (_d, _e, { groupId }) => qc.invalidateQueries({ queryKey: ['open-invites', groupId] }),
+  });
+}
+
 /** Owner only. The current owner becomes a regular member. */
 export function useTransferOwnership() {
   return useInvalidating(async (input: { groupId: string; userId: string }) => {
@@ -1093,6 +1182,7 @@ export function usePaymentsToConfirm() {
         group: { id: p.group_id, name: p.group_name, icon: p.group_icon, currency: p.group_currency },
         fromUserId: p.from_user_id,
         fromName: p.from_name,
+        forDeletedName: p.to_user_id && p.to_user_id !== myId ? (p.to_name ?? 'a deleted member') : null,
         amount: p.amount_cents,
         occurredAt: p.occurred_at,
       }));
@@ -1228,23 +1318,13 @@ export function useRemovePayId() {
 /** PayID is an Australian service: only shown and offered for AUD. */
 export const PAYID_CURRENCY = 'AUD';
 
-/** Join with an invite. With `guestId`, join as that guest from a group link and take over their share. */
+/** Join with an invite: a group link joins you as yourself; one sent to a guest joins you as them. */
 export function useAcceptInvite() {
-  return useInvalidating(async ({ token, guestId }: { token: string; guestId?: string }) => {
-    const { data, error } = await supabase.rpc('accept_invite', { p_token: token, p_guest_id: guestId });
+  return useInvalidating(async ({ token }: { token: string }) => {
+    const { data, error } = await supabase.rpc('accept_invite', { p_token: token });
     if (error) throw error;
     return data;
   });
-}
-
-/**
- * The guests (people added by name) in the group a link is for, so someone joining can say
- * which one they are. Empty for an invite sent to a particular guest, or an expired one.
- */
-export async function inviteGuests(token: string): Promise<{ groupName: string; guests: { id: string; name: string }[] }> {
-  const { data, error } = await supabase.rpc('invite_guests', { p_token: token });
-  if (error) throw error;
-  return { groupName: data[0]?.group_name ?? '', guests: data.map((g) => ({ id: g.guest_id, name: g.guest_name })) };
 }
 
 /** An invite code for the group. Pass `guestId` to invite that guest to join and claim their history. */
@@ -1315,7 +1395,17 @@ export interface AppNotification {
     | 'recurring_due'
     | 'recurring_due_reminder'
     | 'made_owner'
-    | 'owner_handed_over';
+    | 'owner_handed_over'
+    | 'member_joined'
+    | 'guest_claimed'
+    | 'merged_with_guest'
+    | 'claim_undone';
+  /** guest_claimed / merged_with_guest: who took a guest's place, so an owner can undo it. */
+  claimId: string | null;
+  claimGuestName: string | null;
+  claimUndone: boolean;
+  /** How they took the guest's place: an invite sent to the guest, or an owner linking them. */
+  claimVia: 'invite' | 'merge' | null;
   /** Recurring notifications: which recurring expense, and its name. */
   recurringId: string | null;
   recurringDescription: string | null;
@@ -1350,6 +1440,10 @@ export function useNotifications() {
         settlementStatus: n.settlement_status,
         recurringId: (n as { recurring_id?: string | null }).recurring_id ?? null,
         recurringDescription: (n as { recurring_description?: string | null }).recurring_description ?? null,
+        claimId: n.claim_id,
+        claimGuestName: n.claim_guest_name,
+        claimUndone: !!n.claim_undone,
+        claimVia: (n.claim_via as 'invite' | 'merge' | null) ?? null,
       }));
     },
     enabled: !!myId,

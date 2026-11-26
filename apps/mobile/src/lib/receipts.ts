@@ -89,8 +89,11 @@ function base64ToBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-/** Shrink the photo and upload it to the group's receipts. Returns its storage path. */
-export async function uploadReceipt(photo: ImagePicker.ImagePickerAsset, groupId: string): Promise<string> {
+/** A receipt photo shrunk and ready to send: a JPEG, base64-encoded. It stays on the phone until saved. */
+export type PreparedReceipt = { base64: string };
+
+/** Shrink the photo to what Claude needs and encode it. */
+export async function prepareReceipt(photo: ImagePicker.ImagePickerAsset): Promise<PreparedReceipt> {
   const { ImageManipulator, SaveFormat } = manipulator();
   const context = ImageManipulator.manipulate(photo.uri);
   if (Math.max(photo.width, photo.height) > MAX_SIDE) {
@@ -99,16 +102,15 @@ export async function uploadReceipt(photo: ImagePicker.ImagePickerAsset, groupId
   const image = await context.renderAsync();
   const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true });
   if (!saved.base64) throw new Error('Couldn’t prepare the photo. Please try again.');
-
-  const path = `${groupId}/${randomId()}.jpg`;
-  const { error } = await supabase.storage.from('receipts').upload(path, base64ToBytes(saved.base64), { contentType: 'image/jpeg' });
-  if (error) throw new Error('Couldn’t upload the photo. Check your connection and try again.');
-  return path;
+  return { base64: saved.base64 };
 }
 
-/** Read an uploaded receipt. Throws with a message that's fine to show. */
-export async function scanReceipt(path: string): Promise<ReadReceipt> {
-  const { data, error } = await supabase.functions.invoke<ReceiptScan>('scan-receipt', { body: { path } });
+/**
+ * Read a receipt. The photo is sent straight to the scan-receipt function and isn't stored: it's
+ * only uploaded once the expense is saved (attachReceipt). Throws with a message that's fine to show.
+ */
+export async function scanReceipt(photo: PreparedReceipt): Promise<ReadReceipt> {
+  const { data, error } = await supabase.functions.invoke<ReceiptScan>('scan-receipt', { body: { image: photo.base64 } });
   if (error) {
     let message = 'Couldn’t read this photo. Please try again.';
     if (error instanceof FunctionsHttpError) {
@@ -137,15 +139,26 @@ export async function scanReceipt(path: string): Promise<ReadReceipt> {
   };
 }
 
-/** Put a receipt on a saved expense. */
-export async function attachReceipt(expenseId: string, path: string): Promise<void> {
+/**
+ * Upload the photo and put it on a saved expense. If putting it on fails, the upload is left
+ * unused and the server deletes it after a day.
+ */
+export async function attachReceipt(expenseId: string, groupId: string, photo: PreparedReceipt): Promise<void> {
+  const path = `${groupId}/${randomId()}.jpg`;
+  const { error: uploadError } = await supabase.storage
+    .from('receipts')
+    .upload(path, base64ToBytes(photo.base64), { contentType: 'image/jpeg' });
+  if (uploadError) throw new Error('Couldn’t upload the photo. Check your connection and try again.');
   const { error } = await supabase.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
   if (error) throw error;
 }
 
-/** Remove a photo that ended up not being used (the form was closed, or another photo replaced it). */
-export function discardReceipt(path: string): void {
-  void supabase.storage.from('receipts').remove([path]);
+/**
+ * Ask the server to delete photos it has queued (from deleted expenses, removed photos or deleted
+ * accounts). Safe to call any time; failures are tried again on the next call.
+ */
+export function emptyReceiptTrash(): void {
+  void supabase.functions.invoke('empty-receipt-trash', { body: {} }).catch(() => {});
 }
 
 /** A short-lived link to show a receipt photo. */

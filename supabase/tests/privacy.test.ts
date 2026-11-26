@@ -144,8 +144,12 @@ describe('Member privacy', () => {
   });
 
   it("being in the split lets a member read an expense, not change or delete it", async () => {
+    // The owner deleted Power above (for good), so Cara adds another.
+    const split3 = [alice, bob, cara].map((p) => ({ user_id: p.id, amount_cents: 2000 }));
+    const { data: water } = await cara.client.rpc('create_expense', { p_group_id: groupId, p_description: 'Water', p_amount_cents: 6000, p_payer_id: cara.id, p_split_method: 'equal', p_splits: split3 });
+    expect((await bob.client.from('expenses').select('description').eq('id', water).single()).data?.description).toBe('Water');
     const { error: editError } = await bob.client.rpc('update_expense', {
-      p_expense_id: caraExpense,
+      p_expense_id: water,
       p_description: 'Changed',
       p_amount_cents: 6000,
       p_payer_id: cara.id,
@@ -154,7 +158,7 @@ describe('Member privacy', () => {
       p_occurred_at: new Date().toISOString(),
     });
     expect(editError).not.toBeNull();
-    expect((await bob.client.rpc('delete_expense', { p_expense_id: caraExpense })).error).not.toBeNull();
-    expect((await cara.client.from('expenses').select('description').eq('id', caraExpense).single()).data?.description).toBe('Power');
+    expect((await bob.client.rpc('delete_expense', { p_expense_id: water })).error).not.toBeNull();
+    expect((await cara.client.from('expenses').select('description').eq('id', water).single()).data?.description).toBe('Water');
   });
 });

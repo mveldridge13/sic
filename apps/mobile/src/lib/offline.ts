@@ -256,6 +256,16 @@ export function forgetCache(userId: string) {
   emit();
 }
 
+/**
+ * A deleted account: forget everything this phone kept for it, including changes that were
+ * never sent (they can't be now).
+ */
+export function forgetAccount(userId: string) {
+  outbox = outbox.filter((e) => e.userId !== userId);
+  saveOutbox();
+  forgetCache(userId);
+}
+
 let flushing: Promise<boolean> | null = null;
 
 /**

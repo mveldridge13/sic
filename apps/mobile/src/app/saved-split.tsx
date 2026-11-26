@@ -31,8 +31,8 @@ export default function SavedSplitScreen() {
   const { data } = useTallyData();
   const group = data.groups.find((g) => g.id === groupId);
   const existing = data.savedSplits.find((sp) => sp.id === id);
-  const members = group?.memberIds ?? [];
-  const gone = existing && group ? goneFromSplit(existing, group.memberIds) : [];
+  const members = group?.pickableIds ?? [];
+  const gone = existing && group ? goneFromSplit(existing, group.pickableIds) : [];
 
   const start = existing ? formFromSaved(existing, members) : { method: 'percentage' as SavedSplitMethod, included: {}, values: {} };
   const [splitName, setSplitName] = useState(existing?.name ?? '');

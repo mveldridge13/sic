@@ -11,6 +11,7 @@ import { installWebAlerts, WebAlertHost } from '@/components/web-alert';
 import { useAuth } from '@/lib/auth';
 import { TALLY_KEY } from '@/lib/data';
 import { flushOutbox, forgetCache, setRefresher, whenReconnected } from '@/lib/offline';
+import { emptyReceiptTrash } from '@/lib/receipts';
 import { brand, useColors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -58,8 +59,10 @@ export default function RootLayout() {
   useEffect(() => {
     // Drop cached data from a previous account on sign-out, including the copy kept on the phone.
     if (!userId) return;
-    // Signed in: send anything saved with no signal last time.
+    // Signed in: send anything saved with no signal last time, and have the server delete any
+    // receipt photos it couldn't delete before.
     void flushOutbox();
+    emptyReceiptTrash();
     return () => {
       queryClient.clear();
       if (!useAuth.getState().session) forgetCache(userId);

@@ -104,17 +104,28 @@ describe('Receipts', () => {
     expect((await cara.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: carasPhoto })).error).not.toBeNull();
   });
 
-  it('lets whoever deletes an expense delete its photo, and nobody else', async () => {
+  // The server deletes photos that aren't needed any more (the empty-receipt-trash function).
+  const emptyTrash = async () => {
+    const res = await fetch(`${URL}/functions/v1/empty-receipt-trash`, { method: 'POST', headers: { Authorization: `Bearer ${ANON}` } });
+    expect(res.status).toBe(200);
+  };
+
+  it('deletes an expense for good, and the server deletes its photo', async () => {
     const path = `${groupId}/${uuid()}.jpg`;
     await upload(bob, path);
     const expenseId = await addExpense(bob);
     await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
 
-    // Once the owner deletes the expense, she can; Cara (in the split, but not an editor) still can't.
+    // Cara is in the split but can't delete it.
+    expect((await cara.client.rpc('delete_expense', { p_expense_id: expenseId })).error).not.toBeNull();
     expect((await alice.client.rpc('delete_expense', { p_expense_id: expenseId })).error).toBeNull();
-    await cara.client.storage.from('receipts').remove([path]);
-    expect(await canRead(bob, path)).toBe(true);
-    await alice.client.storage.from('receipts').remove([path]);
+    // Gone for good: the owner can't see it (nor its splits or history) either.
+    expect((await alice.client.from('expenses').select('id').eq('id', expenseId)).data).toEqual([]);
+    expect((await alice.client.from('expense_splits').select('user_id').eq('expense_id', expenseId)).data).toEqual([]);
+    expect((await alice.client.from('expense_revisions').select('id').eq('expense_id', expenseId)).data).toEqual([]);
+
+    expect(await canRead(bob, path)).toBe(true); // until the server gets to it
+    await emptyTrash();
     expect(await canRead(bob, path)).toBe(false);
   });
 
@@ -125,16 +136,36 @@ describe('Receipts', () => {
     await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: path });
 
     // Cara is in the split but can't edit: the photo stays.
-    await cara.client.storage.from('receipts').remove([path]);
+    expect((await cara.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: null })).error).not.toBeNull();
+    await emptyTrash();
     expect(await canRead(bob, path)).toBe(true);
 
-    // The owner (an editor) removes it, then detaches it; the expense is still there.
-    const { data: removed } = await alice.client.storage.from('receipts').remove([path]);
-    expect(removed).toHaveLength(1);
+    // The owner (an editor) removes it; the server deletes the file; the expense is still there.
     expect((await alice.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: null })).error).toBeNull();
+    await emptyTrash();
     expect(await canRead(bob, path)).toBe(false);
     const { data: e } = await bob.client.from('expenses').select('receipt_path, deleted_at').eq('id', expenseId).single();
     expect(e).toEqual({ receipt_path: null, deleted_at: null });
+  });
+
+  it('deletes a photo replaced by another', async () => {
+    const first = `${groupId}/${uuid()}.jpg`;
+    const second = `${groupId}/${uuid()}.jpg`;
+    await upload(bob, first);
+    await upload(bob, second);
+    const expenseId = await addExpense(bob);
+    await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: first });
+    await bob.client.rpc('set_expense_receipt', { p_expense_id: expenseId, p_path: second });
+    await emptyTrash();
+    expect(await canRead(bob, first)).toBe(false);
+    expect(await canRead(bob, second)).toBe(true);
+  });
+
+  it("keeps the queue away from the app", async () => {
+    expect((await alice.client.from('receipt_trash').select('path')).error).not.toBeNull();
+    expect((await alice.client.rpc('receipts_to_remove', { p_limit: 10 })).error).not.toBeNull();
+    expect((await alice.client.rpc('receipts_removed', { p_paths: ['x'] })).error).not.toBeNull();
+    expect((await alice.client.rpc('queue_orphan_receipts')).error).not.toBeNull();
   });
 
   it('lets you delete only your own photos', async () => {

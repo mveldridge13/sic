@@ -65,14 +65,14 @@ export function ConfirmPaymentCard({ payment }: { payment: PaymentToConfirm }) {
         <Avatar name={payment.fromName} size={46} color={groupColor(payment.fromUserId)} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text variant="caption" muted style={{ fontWeight: '600' }}>
-            {payment.fromName} says they paid you
+            {payment.forDeletedName ? `${payment.fromName} says they paid ${payment.forDeletedName}` : `${payment.fromName} says they paid you`}
           </Text>
           <Text variant="title" style={{ fontSize: 24, letterSpacing: -0.4, fontVariant: ['tabular-nums'] }}>
             {formatMoney(payment.amount, payment.group.currency)}
           </Text>
           <Text variant="caption" muted numberOfLines={1}>
             {payment.group.icon ? `${payment.group.icon} ` : ''}
-            {payment.group.name} · did it arrive?
+            {payment.group.name} · {payment.forDeletedName ? 'they deleted their account, so you can confirm it' : 'did it arrive?'}
           </Text>
         </View>
       </View>

@@ -530,6 +530,19 @@ export function GroupDetail({ id, embedded = false, onGone }: { id: string; embe
         <Card style={{ paddingVertical: 0 }}>
           <MenuRow label="Share an invite link" onPress={() => void invite()} />
           <Divider />
+          {seesEverything(group.myRole) ? (
+            <>
+              <MenuRow
+                label="Invites"
+                detail="Links that still work: turn one off or replace it"
+                onPress={() => {
+                  setSheet(null);
+                  router.push({ pathname: '/invites/[groupId]', params: { groupId: group.id } });
+                }}
+              />
+              <Divider />
+            </>
+          ) : null}
           <MenuRow label="Change icon" onPress={() => setSheet('icon')} />
           <Divider />
           <MenuRow

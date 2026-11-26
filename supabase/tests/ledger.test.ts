@@ -146,7 +146,7 @@ describe('sic ledger (Supabase)', () => {
     expect(updateError !== null || data?.every((e) => e.amount_cents !== 1)).toBe(true);
   });
 
-  it('keeps a revision when an expense is edited or deleted', async () => {
+  it('keeps a revision when an expense is edited, and deletes both for good', async () => {
     const { data: rows } = await alice.client.from('expenses').select('id').eq('group_id', groupId).single();
     const expenseId = rows!.id;
     const edit = await alice.client.rpc('update_expense', {
@@ -155,12 +155,15 @@ describe('sic ledger (Supabase)', () => {
       p_splits: [{ user_id: alice.id, amount_cents: 3000 }, { user_id: bob.id, amount_cents: 6000 }],
     });
     expect(edit.error).toBeNull();
+    const { data: revisions } = await alice.client.from('expense_revisions').select('before').eq('expense_id', expenseId);
+    expect(revisions).toHaveLength(1);
+    expect(revisions![0]!.before.description).toBe('Dinner');
+
+    // Deleting is for good: the expense and its history both go.
     const del = await alice.client.rpc('delete_expense', { p_expense_id: expenseId });
     expect(del.error).toBeNull();
-
-    const { data: revisions } = await alice.client.from('expense_revisions').select('before').eq('expense_id', expenseId);
-    expect(revisions).toHaveLength(2);
-    expect(revisions![0]!.before.description).toBe('Dinner');
+    expect((await alice.client.from('expenses').select('id').eq('id', expenseId)).data).toEqual([]);
+    expect((await alice.client.from('expense_revisions').select('id').eq('expense_id', expenseId)).data).toEqual([]);
   });
 
   it('rejects calls from signed-out users', async () => {

@@ -1,6 +1,6 @@
 import { formatMoney, pairBreakdown, type Cents } from '@tally/shared';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
 import { CardText, Gutter, HeroScreen, SectionTitle, SummaryCard } from '@/components/dashboard';
@@ -10,7 +10,16 @@ import { Avatar, Button, Card, Divider, Notice, Text } from '@/components/ui';
 import { useMyId } from '@/lib/auth';
 import { GuestLinkCard } from '@/components/guest-link-card';
 import { PayIdCard } from '@/components/payid-card';
-import { PAYID_CURRENCY, useNameOf, useRemoveMember, useSetCoOwner, useTallyData, useTransferOwnership } from '@/lib/data';
+import {
+  PAYID_CURRENCY,
+  seesEverything,
+  useMergeGuest,
+  useNameOf,
+  useRemoveMember,
+  useSetCoOwner,
+  useTallyData,
+  useTransferOwnership,
+} from '@/lib/data';
 import { sendInvite } from '@/lib/invite';
 import { useGroupSummary, type ActivityItem } from '@/store/hooks';
 import { balanceColor, brand, groupColor, groupTint, PRESS_DELAY, radius, space, useColors } from '@/theme';
@@ -31,6 +40,8 @@ export default function BalanceBreakdownScreen() {
   const removeMember = useRemoveMember();
   const transferOwnership = useTransferOwnership();
   const setCoOwner = useSetCoOwner();
+  const mergeGuest = useMergeGuest();
+  const [choosingSame, setChoosingSame] = useState(false);
 
   const expenses = useMemo(() => data.expenses.filter((e) => e.groupId === groupId), [data.expenses, groupId]);
   const settlements = useMemo(() => data.settlements.filter((s) => s.groupId === groupId), [data.settlements, groupId]);
@@ -180,6 +191,25 @@ export default function BalanceBreakdownScreen() {
     const memberError = removeMember.error ?? transferOwnership.error ?? setCoOwner.error;
     const isCoOwner = group.roles[otherId] === 'admin';
     const isGuest = !!data.people[otherId]?.isGuest;
+    const isDeleted = !!data.people[otherId]?.deleted;
+    // Owner or co-owner: a guest who's really someone already in the group with an account.
+    const accountMembers = group.memberIds.filter((id) => !data.people[id]?.isGuest);
+    const canMerge = isGuest && !isDeleted && isMember && seesEverything(group.myRole) && accountMembers.length > 0;
+    const merge = (userId: string) => {
+      const who = userId === myId ? 'you' : name(userId);
+      Alert.alert(
+        `Is ${they} the same person as ${who}?`,
+        `Everything recorded for ${they} in ${group.name} becomes ${userId === myId ? 'yours' : `${name(userId)}’s`}, and ${they} is no longer listed as a guest.${userId === myId ? '' : ` ${name(userId)} will be told.`} You can undo this from Notifications.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Same person',
+            onPress: () =>
+              mergeGuest.mutate({ groupId: group.id, guestId: otherId, userId }, { onSuccess: () => goBack() }),
+          },
+        ],
+      );
+    };
     // Who pays whom to settle, and how much of that is already recorded and waiting to be confirmed.
     const iPay = pair.total < 0;
     const payerId = iPay ? myId : otherId;
@@ -348,7 +378,31 @@ export default function BalanceBreakdownScreen() {
               {money(sent)} recorded, waiting for {iPay ? they : 'you'} to confirm. It counts once {iPay ? 'they confirm' : 'you confirm'}.
             </Text>
           ) : null}
-          {isGuest && isMember ? (
+          {isDeleted ? (
+            <Text variant="caption" muted>
+              {they} deleted their account. What they paid and owe stays in this group, so balances still add up. The owner or a co-owner
+              confirms payments made to them.
+            </Text>
+          ) : null}
+          {canMerge ? (
+            <View style={{ gap: space.sm }}>
+              {choosingSame ? (
+                <Card style={{ gap: space.sm }}>
+                  <Text variant="label" style={{ fontWeight: '700' }}>
+                    Who is {they}?
+                  </Text>
+                  {accountMembers.map((id) => (
+                    <Button key={id} kind="secondary" size="small" label={id === myId ? 'Me' : name(id)} onPress={() => merge(id)} />
+                  ))}
+                  <Button kind="secondary" size="small" label="Cancel" onPress={() => setChoosingSame(false)} />
+                </Card>
+              ) : (
+                <Button kind="secondary" size="small" label={`${they} has joined? Link them to their account`} onPress={() => setChoosingSame(true)} />
+              )}
+              {mergeGuest.error ? <Notice>{mergeGuest.error.message}</Notice> : null}
+            </View>
+          ) : null}
+          {isGuest && !isDeleted && isMember ? (
             <>
               <Button label={`Invite ${they} to join`} onPress={inviteGuest} />
               <Text variant="caption" muted>

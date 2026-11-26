@@ -85,8 +85,8 @@ export function ExpenseDetail({ id, embedded = false, onGone }: { id: string; em
   function confirmDelete() {
     Alert.alert(
       'Delete this expense?',
-      `“${expense!.description}” (${money(expense!.amount)}) will be removed and everyone’s balances will update. A copy is kept in the history.` +
-        (expense!.receiptPath ? '\n\nThe receipt photo attached to it will be deleted for good and can’t be recovered.' : ''),
+      `“${expense!.description}” (${money(expense!.amount)}) and its edit history will be deleted for good, and everyone’s balances will update. This can’t be undone.` +
+        (expense!.receiptPath ? '\n\nThe receipt photo attached to it is deleted too.' : ''),
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -301,7 +301,7 @@ function ReceiptPhoto({ expenseId, path, canRemove }: { expenseId: string; path:
   const remove = useRemoveReceipt();
 
   function confirmRemove() {
-    Alert.alert('Remove the receipt photo?', 'The photo will be deleted for good and can’t be recovered. The expense stays as it is.', [
+    Alert.alert('Remove the receipt photo?', 'The photo will be deleted for good and can’t be recovered. The expense stays as it is, including anything read from the photo.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => remove.mutate({ expenseId, path }) },
     ]);

@@ -1,13 +1,13 @@
 import { formatMoney } from '@tally/shared';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { Gutter, HeroScreen } from '@/components/dashboard';
 import { ConfirmButtons } from '@/components/confirm-payment';
 import { GroupIcon } from '@/components/friendly';
-import { Card, Divider, Notice, Text } from '@/components/ui';
-import { useMarkNotificationsRead, useNotifications, type AppNotification } from '@/lib/data';
+import { Button, Card, Divider, Notice, Text } from '@/components/ui';
+import { seesEverything, useMarkNotificationsRead, useNotifications, useTallyData, useUndoGuestClaim, type AppNotification } from '@/lib/data';
 import { useMyId } from '@/lib/auth';
 import { relativeTime } from '@/lib/format';
 import { usePullToRefresh } from '@/lib/pull-to-refresh';
@@ -18,8 +18,30 @@ function Row({ n }: { n: AppNotification }) {
   const c = useColors();
   const myId = useMyId();
   const summaries = useGroupSummaries();
+  const { data } = useTallyData();
+  const undo = useUndoGuestClaim();
   const reminder = n.kind === 'settle_reminder';
   const asksToConfirm = n.kind === 'payment_to_confirm' || n.kind === 'confirm_reminder';
+  // A payment to someone who deleted their account: the owner or a co-owner answers it for them.
+  const payment = n.settlementId ? data.pendingPayments.find((p) => p.id === n.settlementId) : undefined;
+  const forDeleted = payment && data.people[payment.toUserId]?.deleted ? data.people[payment.toUserId]!.name : null;
+  // Owners and co-owners can undo someone taking a guest's place.
+  const myRole = data.groups.find((g) => g.id === n.group.id)?.myRole;
+  const canUndo = n.kind === 'guest_claimed' && !!n.claimId && !n.claimUndone && seesEverything(myRole);
+  const askUndo = () =>
+    Alert.alert(
+      `Undo ${n.actorName} joining as ${n.claimGuestName ?? 'a guest'}?`,
+      `Everything recorded for ${n.claimGuestName ?? 'the guest'} goes back to them. If ${n.actorName} has nothing else in ${n.group.name}, they’re taken out of the group. You can then send ${n.claimGuestName ?? 'the guest'} a new invite.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Undo',
+          style: 'destructive',
+          onPress: () =>
+            undo.mutate(n.claimId!, { onError: (e) => Alert.alert('Couldn’t undo that', e instanceof Error ? e.message : 'Please try again.') }),
+        },
+      ],
+    );
 
   // Notifications stay after you leave or are removed from a group, but there's nothing to open.
   const inGroup = summaries.some((s) => s.group.id === n.group.id);
@@ -85,6 +107,11 @@ function Row({ n }: { n: AppNotification }) {
           <Text variant="body">
             {bold(n.group.name)} is all settled up · Everyone’s square
           </Text>
+        ) : (n.kind === 'payment_to_confirm' || n.kind === 'confirm_reminder') && forDeleted ? (
+          <Text variant="body">
+            {bold(n.actorName)} says they paid {bold(forDeleted)} {bold(formatMoney(n.amount ?? 0, n.group.currency))} in {bold(n.group.name)}
+            {' · '}They deleted their account, so you can confirm it for them
+          </Text>
         ) : n.kind === 'payment_to_confirm' || n.kind === 'confirm_reminder' ? (
           <Text variant="body">
             {bold(n.actorName)} {n.kind === 'confirm_reminder' ? 'is waiting for you to confirm' : 'says they paid you'}{' '}
@@ -118,6 +145,29 @@ function Row({ n }: { n: AppNotification }) {
             {bold(n.actorName)} says your {bold(formatMoney(n.amount ?? 0, n.group.currency))} payment in {bold(n.group.name)} hasn’t
             arrived · It’s been removed, so check with them
           </Text>
+        ) : n.kind === 'member_joined' ? (
+          <Text variant="body">
+            {bold(n.actorName)} joined {bold(n.group.name)} with an invite link
+          </Text>
+        ) : n.kind === 'guest_claimed' && n.claimVia === 'merge' ? (
+          <Text variant="body">
+            {bold(n.actorName)} is now linked to {bold(n.claimGuestName ?? 'a guest')} in {bold(n.group.name)} · Everything recorded for{' '}
+            {n.claimGuestName ?? 'them'} is theirs now
+          </Text>
+        ) : n.kind === 'guest_claimed' ? (
+          <Text variant="body">
+            {bold(n.actorName)} joined {bold(n.group.name)} as {bold(n.claimGuestName ?? 'a guest')} · Everything recorded for{' '}
+            {n.claimGuestName ?? 'them'} is theirs now
+          </Text>
+        ) : n.kind === 'merged_with_guest' ? (
+          <Text variant="body">
+            {bold(n.actorName)} linked you with {bold(n.claimGuestName ?? 'a guest')} in {bold(n.group.name)} · What was recorded for{' '}
+            {n.claimGuestName ?? 'them'} is now yours
+          </Text>
+        ) : n.kind === 'claim_undone' ? (
+          <Text variant="body">
+            {bold(n.actorName)} undid your joining {bold(n.group.name)} as someone who was already in it · Ask them if that was a mistake
+          </Text>
         ) : n.kind === 'removed_co_owner' ? (
           <Text variant="body">
             {bold(n.actorName)} removed you as co-owner of {bold(n.group.name)} · You’ll now see only items you added
@@ -130,13 +180,19 @@ function Row({ n }: { n: AppNotification }) {
         <Text variant="caption" muted>
           {relativeTime(n.at)}
           {asksToConfirm && n.settlementStatus !== 'pending'
-            ? ` · ${n.settlementStatus === 'recorded' ? 'You confirmed it' : n.settlementStatus === 'declined' ? 'You said it hadn’t arrived' : 'Cancelled'}`
+            ? ` · ${n.settlementStatus === 'recorded' ? 'Confirmed' : n.settlementStatus === 'declined' ? 'Marked as not arrived' : 'Cancelled'}`
             : ''}
+          {(n.kind === 'guest_claimed' || n.kind === 'merged_with_guest') && n.claimUndone ? ' · Undone' : ''}
         </Text>
         {/* Still waiting for you: answer right here. */}
         {asksToConfirm && n.settlementStatus === 'pending' && n.settlementId ? (
           <View style={{ marginTop: space.sm }}>
             <ConfirmButtons settlementId={n.settlementId} fromName={n.actorName} amount={n.amount ?? 0} currency={n.group.currency} />
+          </View>
+        ) : null}
+        {canUndo ? (
+          <View style={{ marginTop: space.sm, alignSelf: 'flex-start' }}>
+            <Button size="small" kind="secondary" label="Wrong person? Undo" onPress={askUndo} loading={undo.isPending} />
           </View>
         ) : null}
       </View>

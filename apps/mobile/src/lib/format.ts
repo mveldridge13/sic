@@ -13,7 +13,12 @@ export function relativeTime(iso: string, now = Date.now()): string {
 }
 
 export function firstName(name: string | undefined): string {
-  return (name ?? '').trim().split(/\s+/)[0] ?? '';
+  const full = (name ?? '').trim();
+  // Someone who deleted their account: "Deleted member 2" is shortened to "Deleted 2", so two of
+  // them can still be told apart.
+  const deleted = /^Deleted member (\d+)$/.exec(full);
+  if (deleted) return `Deleted ${deleted[1]}`;
+  return full.split(/\s+/)[0] ?? '';
 }
 
 export function greeting(date = new Date()): string {

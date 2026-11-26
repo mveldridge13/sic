@@ -57,9 +57,11 @@ describe('Notifications', () => {
     tripId = trip.id;
   });
 
-  it("joining a group yourself (invite or creating it) doesn't notify you", async () => {
+  it("joining a group yourself (invite or creating it) doesn't notify you, but tells the owner", async () => {
     expect(await notes(bob)).toEqual([]);
-    expect(await notes(alice)).toEqual([]);
+    const forAlice = await notes(alice);
+    expect(forAlice).toHaveLength(1);
+    expect(forAlice[0]).toMatchObject({ kind: 'member_joined', actor_name: 'NoteBob', group_name: 'Flat' });
   });
 
   it('being added by someone else notifies you, with their name and the group', async () => {
@@ -80,11 +82,11 @@ describe('Notifications', () => {
       actor_name: 'NoteAlice',
       read_at: null,
     });
-    expect(await notes(alice)).toEqual([]);
+    expect((await notes(alice)).map((n) => n.kind)).toEqual(['member_joined']);
   });
 
   it("you can't read anyone else's notifications", async () => {
-    expect((await alice.client.from('notifications').select('id')).data).toEqual([]);
+    expect((await alice.client.from('notifications').select('kind')).data).toEqual([{ kind: 'member_joined' }]);
     expect((await bob.client.from('notifications').select('id')).data).toHaveLength(1);
   });
 

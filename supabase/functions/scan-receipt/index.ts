@@ -1,7 +1,10 @@
 // Reads a receipt photo and returns its shop, date, currency, total and line items.
 //
-// The app uploads the photo to the private "receipts" bucket first, then calls this with its path.
-// The photo is downloaded as the signed-in user, so storage rules decide whether they may read it.
+// The app sends the photo itself ({ image: base64 JPEG }). Nothing is stored here: the app uploads
+// the photo to the private "receipts" bucket only once the expense is saved, so a scan that's
+// abandoned leaves nothing behind.
+// Older app versions upload first and send its path instead ({ path }); the photo is then
+// downloaded as the signed-in user, so storage rules decide whether they may read it.
 //
 // Secrets: ANTHROPIC_API_KEY (required), RECEIPT_MODEL (optional, defaults to claude-haiku-5-5).
 
@@ -16,6 +19,8 @@ const anthropic = new Anthropic({ apiKey: env('ANTHROPIC_API_KEY') });
 // Haiku rejects the parameter, so it's sent only where it's supported.
 const FALLBACK = /^claude-(opus-5|fable-5|mythos-5|sonnet-5-5)/.test(MODEL);
 
+// About 7.5 MB of photo. The app sends at most 1568 px at 70% quality, usually well under 1 MB.
+const MAX_BASE64 = 10_000_000;
 const PATH_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f-]{36}\.jpg$/;
 
 const SYSTEM = `You read photos of receipts and bills for a bill-splitting app. Report what is printed; never guess.
@@ -80,12 +85,19 @@ Deno.serve(async (req) => {
   });
 
   let path: unknown;
+  let sent: unknown;
   try {
-    ({ path } = await req.json());
+    ({ path, image: sent } = await req.json());
   } catch {
-    return reply(400, { error: 'Send the receipt path' });
+    return reply(400, { error: 'Send the receipt photo' });
   }
-  if (typeof path !== 'string' || !PATH_RE.test(path)) return reply(400, { error: 'That isn’t a receipt path' });
+  if (sent !== undefined) {
+    if (typeof sent !== 'string' || sent.length > MAX_BASE64 || !/^[A-Za-z0-9+/]+=*$/.test(sent)) {
+      return reply(400, { error: 'That photo is too big or isn’t a JPEG. Please try again.' });
+    }
+  } else if (typeof path !== 'string' || !PATH_RE.test(path)) {
+    return reply(400, { error: 'That isn’t a receipt path' });
+  }
 
   // Counts toward today's allowance (and checks the caller is signed in).
   const claim = await supabase.rpc('claim_receipt_scan');
@@ -94,14 +106,23 @@ Deno.serve(async (req) => {
     return reply(status, { error: claim.error.message });
   }
 
-  const file = await supabase.storage.from('receipts').download(path);
-  if (file.error || !file.data) return reply(404, { error: 'Couldn’t find that photo. Please try again.' });
-  const bytes = new Uint8Array(await file.data.arrayBuffer());
-  if (bytes.length < 1000) {
-    console.error('Receipt photo is empty or too small', path, bytes.length);
-    return reply(422, { error: 'The photo didn’t upload properly. Please try again. (empty photo)' });
+  let image: string;
+  if (typeof sent === 'string') {
+    // JPEG files start FF D8 FF, which is "/9j/" in base64.
+    if (sent.length < 1400 || !sent.startsWith('/9j/')) {
+      return reply(422, { error: 'The photo didn’t come through properly. Please try again. (empty photo)' });
+    }
+    image = sent;
+  } else {
+    const file = await supabase.storage.from('receipts').download(path as string);
+    if (file.error || !file.data) return reply(404, { error: 'Couldn’t find that photo. Please try again.' });
+    const bytes = new Uint8Array(await file.data.arrayBuffer());
+    if (bytes.length < 1000) {
+      console.error('Receipt photo is empty or too small', path, bytes.length);
+      return reply(422, { error: 'The photo didn’t upload properly. Please try again. (empty photo)' });
+    }
+    image = toBase64(bytes);
   }
-  const image = toBase64(bytes);
 
   try {
     const response = await anthropic.beta.messages.create({

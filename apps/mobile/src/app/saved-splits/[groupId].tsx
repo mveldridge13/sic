@@ -96,7 +96,7 @@ export default function SavedSplitsScreen() {
         ) : null}
 
         {splits.map((sp) => {
-          const gone = goneFromSplit(sp, group.memberIds);
+          const gone = goneFromSplit(sp, group.pickableIds);
           const isDefault = group.defaultSplitId === sp.id;
           const canManage = !closed && (admin || sp.createdBy === myId);
           const changed = sp.updatedAt !== sp.createdAt;
@@ -122,9 +122,9 @@ export default function SavedSplitsScreen() {
                 <Notice>
                   {`Needs updating: ${gone.map(name).join(' and ')} ${gone.length === 1 ? 'is' : 'are'} no longer in the group, so this split can’t be used until it’s updated.`}
                 </Notice>
-              ) : sp.shares.length < group.memberIds.length ? (
+              ) : sp.shares.length < group.pickableIds.length ? (
                 <Text variant="caption" muted>
-                  {sp.shares.length} of the {group.memberIds.length} people in the group
+                  {sp.shares.length} of the {group.pickableIds.length} people in the group
                 </Text>
               ) : null}
               <Text variant="caption" muted>

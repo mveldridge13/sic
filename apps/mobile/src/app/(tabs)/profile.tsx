@@ -9,7 +9,8 @@ import { Avatar, Button, Card, Chip, Divider, Field, Notice, Text } from '@/comp
 import { useMyEmail, useMyId } from '@/lib/auth';
 import { CURRENCIES } from '@/lib/currencies';
 import { PAYID_CURRENCY, useRemovePayId, useSetPayId, useSetReceiptScanConsent, useTallyData, useUpdateProfile } from '@/lib/data';
-import { canScanReceipts } from '@/lib/receipts';
+import { forgetAccount } from '@/lib/offline';
+import { canScanReceipts, emptyReceiptTrash } from '@/lib/receipts';
 import { supabase } from '@/lib/supabase';
 import { PRESS_DELAY, brand, space, useColors } from '@/theme';
 import { usePullToRefresh } from '@/lib/pull-to-refresh';
@@ -130,7 +131,7 @@ export default function ProfileScreen() {
     if (!deletePassword) return setDeleteState({ busy: false, error: 'Enter your password to confirm it’s you.' });
     Alert.alert(
       'Delete your account?',
-      'This can’t be undone. Your login, PayID and settings are deleted. Groups you own pass to someone else. Past expenses and payments stay in your groups, under your name.',
+      'This can’t be undone. Your name, login, PayID, settings and receipt photos are deleted. In each group you become “Deleted member 1” (or 2, 3…), so balances still add up. Groups you own pass to someone else.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete account', style: 'destructive', onPress: deleteAccount },
@@ -150,7 +151,10 @@ export default function ProfileScreen() {
     }
     const { error } = await supabase.rpc('delete_my_account');
     if (error) return setDeleteState({ busy: false, error: error.message });
-    // The login no longer exists, so just forget it on this phone.
+    // Your receipt photos were queued for deletion: ask the server to delete them now.
+    emptyReceiptTrash();
+    // The login no longer exists, so forget it on this phone, with everything kept for it offline.
+    forgetAccount(myId);
     await supabase.auth.signOut({ scope: 'local' });
   }
 
@@ -357,8 +361,9 @@ export default function ProfileScreen() {
             {editing === 'delete' ? (
               <View style={{ gap: space.md, paddingBottom: space.lg }}>
                 <Text variant="caption" muted>
-                  You need to be settled up in every group first. Your login, PayID and settings are deleted for good. Groups you own pass to
-                  a co-owner or the longest-standing member. Past expenses and payments stay, so your groups’ balances still add up.
+                  Your name, login, PayID, settings and the receipt photos you took are deleted for good. You don’t need to settle up first: in
+                  each group your place goes to “Deleted member 1” (or 2, 3…), so what you paid and owe still adds up, and payments waiting for
+                  you are confirmed by the group’s owner. Groups you own pass to a co-owner or the longest-standing member.
                 </Text>
                 <Field
                   label="Your password"

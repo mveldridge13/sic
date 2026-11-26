@@ -19,7 +19,7 @@ import {
   type SplitMethod,
 } from '@tally/shared';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, TextInput, View, type TextInputInstance } from 'react-native';
 import { KeyboardController } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -55,7 +55,7 @@ import { canPayIn, PAY_CURRENCIES } from '@/lib/currencies';
 import { CATEGORIES, categoryById, guessCategory, type CategoryId } from '@/lib/categories';
 import { CategoryGrid } from '@/components/category-grid';
 import { defaultRecurring, RecurringLine, RecurringPanel, recurringSummary, todayDate, type RecurringForm } from '@/components/recurring';
-import { attachReceipt, canScanReceipts, discardReceipt, pickReceiptPhoto, scanReceipt, uploadReceipt } from '@/lib/receipts';
+import { attachReceipt, canScanReceipts, pickReceiptPhoto, prepareReceipt, scanReceipt, type PreparedReceipt } from '@/lib/receipts';
 import { useAfterTransition } from '@/lib/transitions';
 import { brand, groupColor, radius, space, type, useColors } from '@/theme';
 import { goBack } from '@/lib/nav';
@@ -364,10 +364,13 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
 
   const [groupId, setGroupId] = useState(editing?.groupId ?? fromSaved?.groupId ?? params.groupId ?? groups[0]?.id ?? '');
   const group = groups.find((g) => g.id === groupId);
-  // When editing, also list anyone in the original split who has since left the group.
+  // When editing, also list anyone in the original split who has since left the group (or deleted
+  // their account). Otherwise deleted members can't be put in new expenses.
   const members = useMemo(() => {
-    const ids = [...(group?.memberIds ?? [])];
-    for (const s of editing?.splits ?? []) if (!ids.includes(s.userId)) ids.push(s.userId);
+    const ids = [...(group?.pickableIds ?? [])];
+    for (const id of [...(editing?.splits ?? []).map((s) => s.userId), ...(editing ? [editing.payerId] : [])]) {
+      if (!ids.includes(id)) ids.push(id);
+    }
     return ids;
   }, [group, editing]);
 
@@ -445,23 +448,16 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setAppliedSplitId(split.id);
   }
   const [rest, setRest] = useState<ItemsRest>(initial.rest);
-  const [receiptPath, setReceiptPath] = useState<string | null>(null);
+  // The scanned photo stays on the phone until the expense is saved; closing the form drops it.
+  const [receiptPhoto, setReceiptPhoto] = useState<PreparedReceipt | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanNote, setScanNote] = useState<string | null>(null);
-  // A photo that's replaced, dropped, or left behind when the form closes is deleted, unless it was saved.
-  const keptReceipt = useRef<string | null>(null);
-  useEffect(() => {
-    if (!receiptPath) return;
-    return () => {
-      if (keptReceipt.current !== receiptPath) discardReceipt(receiptPath);
-    };
-  }, [receiptPath]);
   const updateItem = (key: number, change: Partial<ItemRow>) =>
     setItems((list) => list.map((i) => (i.key === key ? { ...i, ...change } : i)));
   function pickGroup(id: string) {
-    // A scanned photo is stored under its group, so it can't move to another one.
-    setReceiptPath(null);
+    // Changing group starts the form again, scanned photo included.
+    setReceiptPhoto(null);
     setScanNote(null);
     setGroupId(id);
     payIn(null);
@@ -478,7 +474,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
   if (!isEdit && !fromSaved && group && defaultCheckedFor !== group.id) {
     setDefaultCheckedFor(group.id);
     const fallback = groupSplits.find((sp) => sp.id === group.defaultSplitId);
-    if (fallback && goneFromSplit(fallback, group.memberIds).length === 0 && method !== 'items') applySaved(fallback);
+    if (fallback && goneFromSplit(fallback, group.pickableIds).length === 0 && method !== 'items') applySaved(fallback);
     else setAppliedSplitId(null);
   }
   const saveSplit = useSaveSplit();
@@ -499,8 +495,8 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     setSheet(name);
   };
 
-  // Receipt scanning: the photo is uploaded, read, and fills in the form as an items split. It's
-  // put on the expense when it's saved, and deleted again if the form is closed without saving.
+  // Receipt scanning: the photo is read (sent to the scanner, not stored) and fills in the form as an
+  // items split. It's only uploaded when the expense is saved, so closing the form leaves nothing.
   async function scan(from: 'camera' | 'library') {
     if (!group) return;
     setSheet(null);
@@ -510,9 +506,9 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
       const photo = await pickReceiptPhoto(from);
       if (!photo) return;
       setScanning(true);
-      const path = await uploadReceipt(photo, group.id);
-      setReceiptPath(path);
-      const read = await scanReceipt(path);
+      const prepared = await prepareReceipt(photo);
+      const read = await scanReceipt(prepared);
+      setReceiptPhoto(prepared);
       if (read.merchant && !description.trim()) setDescription(read.merchant);
       if (read.category && !pickedCategory) setPickedCategory(read.category);
       // A receipt in another currency we have rates for is entered in that currency and converted.
@@ -827,14 +823,13 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
     })();
   }
 
-  /** Put the scanned photo on the saved expense. The expense is saved either way. */
+  /** Upload the scanned photo and put it on the saved expense. The expense is saved either way. */
   async function keepReceipt(expenseId: string) {
-    if (!receiptPath) return;
+    if (!receiptPhoto || !group) return;
     try {
-      await attachReceipt(expenseId, receiptPath);
-      keptReceipt.current = receiptPath;
+      await attachReceipt(expenseId, group.id, receiptPhoto);
     } catch {
-      // The photo is cleaned up with the form; the expense itself is fine.
+      Alert.alert('Expense saved without the photo', 'The receipt photo couldn’t be uploaded. Everything read from it is saved.');
     }
   }
 
@@ -976,7 +971,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
         <View style={{ alignItems: 'center', marginTop: space.md }}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={receiptPath ? 'Scan a different receipt' : 'Scan a receipt'}
+            accessibilityLabel={receiptPhoto ? 'Scan a different receipt' : 'Scan a receipt'}
             accessibilityState={{ busy: scanning }}
             disabled={scanning}
             onPress={() => void openSheet(consent === true ? 'scan' : 'consent')}
@@ -991,7 +986,7 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
               backgroundColor: 'rgba(255,255,255,0.1)',
             }}>
             <Text variant="label" color={brand.onDeep}>
-              {scanning ? 'Reading receipt…' : receiptPath ? '✓ Receipt added · Scan again' : '📷 Scan receipt'}
+              {scanning ? 'Reading receipt…' : receiptPhoto ? '✓ Receipt added · Scan again' : '📷 Scan receipt'}
             </Text>
           </Pressable>
         </View>
@@ -1138,8 +1133,8 @@ function ExpenseForm({ schedule, dueBill }: { schedule?: RecurringExpense; dueBi
             <View style={{ gap: space.xs }}>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.xs }}>
                 {groupSplits.map((sp) => {
-                  const gone = goneFromSplit(sp, group.memberIds);
-                  const fewer = sp.shares.length < group.memberIds.length ? ` · ${sp.shares.length} of ${group.memberIds.length}` : '';
+                  const gone = goneFromSplit(sp, group.pickableIds);
+                  const fewer = sp.shares.length < group.pickableIds.length ? ` · ${sp.shares.length} of ${group.pickableIds.length}` : '';
                   return (
                     <Chip
                       key={sp.id}

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pricing · sic.</title>
+    <meta
+      name="description"
+      content="sic. is free: unlimited groups, expenses and people, every way to split, and settling up with PayID."
+    />
+    <meta name="robots" content="noindex" />
+    <meta property="og:title" content="sic. Pricing" />
+    <meta
+      property="og:description"
+      content="Split costs with friends, housemates and family for free."
+    />
+    <meta property="og:image" content="https://sic-app.com/icon.png" />
+    <meta property="og:url" content="https://sic-app.com/pricing" />
+    <meta name="theme-color" content="#605574" />
+    <link rel="icon" href="favicon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        font-style: normal;
+        font-weight: 400 800;
+        font-display: swap;
+        src: url(/fonts/inter-latin.woff2) format("woff2");
+      }
+      :root {
+        --deep: #605574;
+        --cream: #faf0eb;
+        --lavender: #e6ddf2;
+        --lavender-soft: #f3eef9;
+        --coral: #e4928a;
+        --red: #ef4444;
+        --text: #2f2838;
+        --muted: #6e6478;
+        --line: #ede4ee;
+        --surface: #ffffff;
+        --bg: var(--cream);
+        --link: var(--deep);
+        --tick: var(--deep);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1e1a24;
+          --surface: #28222f;
+          --lavender-soft: #3a3148;
+          --text: #f4ecf0;
+          --muted: #b5a9bd;
+          --line: #3a3243;
+          --link: #e6ddf2;
+          --tick: #e6ddf2;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          17px/1.6 Inter,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      img {
+        max-width: 100%;
+        display: block;
+      }
+      a {
+        color: var(--link);
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Header */
+      .hero {
+        background: var(--deep);
+        color: #fff;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 22px 0;
+      }
+      .nav img {
+        width: 150px;
+      }
+      @media (max-width: 860px) {
+        .nav img {
+          width: 124px;
+        }
+      }
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav a {
+        color: #fff;
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+        padding: 9px 20px;
+        border-radius: 999px;
+        transition:
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+      .nav a:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+      .nav a.login {
+        background: #fff;
+        color: var(--deep);
+      }
+      .nav a.login:hover {
+        background: #f3eef8;
+      }
+      .hero-body {
+        padding: 36px 0 120px;
+        text-align: center;
+      }
+      .hero h1 {
+        font-size: clamp(36px, 5.5vw, 56px);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+        margin: 0 0 12px;
+      }
+      .hero h1 .dot {
+        color: var(--red);
+      }
+      .hero p {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 19px;
+        margin: 0 auto;
+        max-width: 48ch;
+      }
+
+      /* Plan card */
+      main {
+        padding: 0 0 48px;
+      }
+      .plan {
+        max-width: 880px;
+        margin: -84px auto 0;
+        background: var(--surface);
+        border-radius: 28px;
+        box-shadow: 0 20px 50px rgba(96, 85, 116, 0.14);
+        overflow: hidden;
+      }
+      .plan-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px 32px;
+        padding: 34px 36px 30px;
+        border-bottom: 1px solid var(--line);
+      }
+      .tier {
+        display: inline-block;
+        background: var(--lavender-soft);
+        color: var(--link);
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.02em;
+        padding: 5px 14px;
+        border-radius: 999px;
+        margin: 0 0 10px;
+      }
+      .price {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .price b {
+        font-size: 56px;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+      }
+      .price span {
+        color: var(--muted);
+        font-size: 16px;
+      }
+      .plan-top p {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 16px;
+        max-width: 38ch;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 16px;
+        text-decoration: none;
+        padding: 14px 26px;
+        border-radius: 999px;
+        background: var(--deep);
+        color: #fff;
+        transition:
+          transform 0.15s ease,
+          background 0.15s ease;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        transform: translateY(-1px);
+        background: #534966;
+      }
+      .btn:focus-visible {
+        outline: 3px solid var(--coral);
+        outline-offset: 3px;
+      }
+      .btn .arrow {
+        transition: transform 0.15s ease;
+      }
+      .btn:hover .arrow {
+        transform: translateX(3px);
+      }
+      @media (prefers-color-scheme: dark) {
+        .btn {
+          background: #fff;
+          color: var(--deep);
+        }
+        .btn:hover {
+          background: #f3eef8;
+        }
+      }
+
+      .groups {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 28px 40px;
+        padding: 30px 36px 36px;
+      }
+      .groups h2 {
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .groups ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .groups li {
+        position: relative;
+        padding: 5px 0 5px 30px;
+        font-size: 16px;
+        line-height: 1.45;
+      }
+      .groups li::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 9px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--lavender-soft);
+      }
+      .groups li::after {
+        content: "";
+        position: absolute;
+        left: 7px;
+        top: 12px;
+        width: 4px;
+        height: 8px;
+        border-right: 2px solid var(--tick);
+        border-bottom: 2px solid var(--tick);
+        transform: rotate(45deg);
+      }
+      .groups small {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      footer {
+        padding: 32px 0 56px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      footer .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      footer img {
+        width: 56px;
+      }
+      footer a {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .dark-only {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .dark-only {
+          display: block;
+        }
+        .light-only {
+          display: none;
+        }
+      }
+      .sic {
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .sic-dot {
+        color: var(--red);
+      }
+
+      @media (max-width: 680px) {
+        .hero-body {
+          padding: 24px 0 104px;
+        }
+        .hero p {
+          font-size: 17px;
+        }
+        .plan {
+          border-radius: 22px;
+        }
+        .plan-top {
+          padding: 26px 22px 24px;
+        }
+        .plan-top .btn {
+          width: 100%;
+          justify-content: center;
+        }
+        .groups {
+          grid-template-columns: 1fr;
+          gap: 24px;
+          padding: 24px 22px 28px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <nav class="nav">
+          <a href="/" style="padding: 0; background: none"
+            ><img src="logo-full-light.png" alt="sic. sharing is caring"
+          /></a>
+          <div class="nav-links">
+            <a href="/app/sign-in">Log in</a>
+            <a class="login" href="/app/sign-up">Sign up</a>
+          </div>
+        </nav>
+        <div class="hero-body">
+          <h1>Pricing<span class="dot">.</span></h1>
+          <p>Everything you need to share costs and settle up, for free.</p>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap">
+        <section class="plan" aria-labelledby="free-title">
+          <div class="plan-top">
+            <div>
+              <span class="tier" id="free-title">Free</span>
+              <div class="price"><b>A$0</b><span>no card needed</span></div>
+              <p>For friends, housemates, families and trips.</p>
+            </div>
+            <a class="btn" href="/app/sign-up"
+              >Get started for free <span class="arrow">→</span></a
+            >
+          </div>
+
+          <div class="groups">
+            <div>
+              <h2>Groups and people</h2>
+              <ul>
+                <li>Unlimited groups and expenses</li>
+                <li>Unlimited members</li>
+                <li>
+                  Guests without the app<small
+                    >Add anyone by name and share a private link to their
+                    balance</small
+                  >
+                </li>
+                <li>Co-owners to help run a group</li>
+                <li>Close a group when it's done</li>
+              </ul>
+            </div>
+            <div>
+              <h2>Splitting</h2>
+              <ul>
+                <li>
+                  Split equally, by percent, by shares, by amounts or by item
+                </li>
+                <li>Saved splits for the ones you use often</li>
+                <li>Recurring expenses for rent and bills</li>
+                <li>
+                  Pay in another currency<small
+                    >Converted into the group's currency when you add it</small
+                  >
+                </li>
+                <li>Categories for every expense</li>
+              </ul>
+            </div>
+            <div>
+              <h2>Settling up</h2>
+              <ul>
+                <li>See who owes who at a glance</li>
+                <li>The fewest payments to settle a group</li>
+                <li>Record payments and pay back with PayID</li>
+                <li>Nudges, reminders and notifications</li>
+              </ul>
+            </div>
+            <div>
+              <h2>Your data</h2>
+              <ul>
+                <li>Full history of every change to an expense</li>
+                <li>Works offline and syncs when you're back</li>
+                <li>Delete your account whenever you like</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <a href="/"
+          ><img class="light-only" src="logo-dark.png" alt="sic. home" /><img
+            class="dark-only"
+            src="logo-light.png"
+            alt="sic. home"
+        /></a>
+        <span
+          >© 2026 <span class="sic">sic<span class="sic-dot">.</span></span> ·
+          sharing is caring · <a href="/help">Help</a> ·
+          <a href="/privacy">Privacy policy</a></span
+        >
+      </div>
+    </footer>
+  </body>
+</html>
