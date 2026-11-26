@@ -148,26 +148,60 @@
         max-width: 48ch;
       }
 
-      /* Plan card */
+      /* Plan cards, side by side */
       main {
         padding: 0 0 48px;
       }
-      .plan {
-        max-width: 880px;
+      .plans {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+        max-width: 960px;
         margin: -84px auto 0;
+        align-items: start;
+      }
+      .plan {
         background: var(--surface);
         border-radius: 28px;
         box-shadow: 0 20px 50px rgba(96, 85, 116, 0.14);
         overflow: hidden;
+        border: 2px solid transparent;
+      }
+      .plan.pro {
+        border-color: var(--deep);
+      }
+      @media (prefers-color-scheme: dark) {
+        .plan.pro {
+          border-color: var(--lavender);
+        }
       }
       .plan-top {
         display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px 32px;
-        padding: 34px 36px 30px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 18px;
+        padding: 32px 32px 28px;
         border-bottom: 1px solid var(--line);
+      }
+      .plan-top .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      .btn.soon,
+      .btn.soon:hover {
+        background: var(--lavender-soft);
+        color: var(--link);
+        transform: none;
+        cursor: default;
+      }
+      .price b.word {
+        font-size: 34px;
+        line-height: 1.15;
+      }
+      .plus {
+        font-weight: 700;
+        margin: 0 0 6px;
+        font-size: 16px;
       }
       .tier {
         display: inline-block;
@@ -243,9 +277,9 @@
 
       .groups {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 28px 40px;
-        padding: 30px 36px 36px;
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 28px 32px 34px;
       }
       .groups h2 {
         font-size: 15px;
@@ -343,14 +377,14 @@
         .plan-top {
           padding: 26px 22px 24px;
         }
-        .plan-top .btn {
-          width: 100%;
-          justify-content: center;
-        }
         .groups {
-          grid-template-columns: 1fr;
-          gap: 24px;
           padding: 24px 22px 28px;
+        }
+      }
+      /* Too narrow for two columns: Free first, then Pro underneath. */
+      @media (max-width: 760px) {
+        .plans {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -369,13 +403,14 @@
         </nav>
         <div class="hero-body">
           <h1>Pricing<span class="dot">.</span></h1>
-          <p>Everything you need to share costs and settle up, for free.</p>
+          <p>Everything you need to share costs and settle up is free. Individual Pro adds a few extras.</p>
         </div>
       </div>
     </header>
 
     <main>
       <div class="wrap">
+        <div class="plans">
         <section class="plan" aria-labelledby="free-title">
           <div class="plan-top">
             <div>
@@ -410,7 +445,6 @@
                 <li>
                   Split equally, by percent, by shares, by amounts or by item
                 </li>
-                <li>Saved splits for the ones you use often</li>
                 <li>Recurring expenses for rent and bills</li>
                 <li>
                   Pay in another currency<small
@@ -439,6 +473,38 @@
             </div>
           </div>
         </section>
+
+        <section class="plan pro" aria-labelledby="pro-title">
+          <div class="plan-top">
+            <div>
+              <span class="tier" id="pro-title">Individual Pro</span>
+              <div class="price"><b class="word">Coming soon</b></div>
+              <p>For people who add a lot of expenses and want it quicker.</p>
+            </div>
+            <span class="btn soon" aria-disabled="true">Not available yet</span>
+          </div>
+
+          <div class="groups">
+            <div>
+              <p class="plus">Everything in Free, plus:</p>
+              <ul>
+                <li>
+                  Receipt scanning<small
+                    >Snap a receipt and the shop, total and items are filled in
+                    for you</small
+                  >
+                </li>
+                <li>
+                  Saved splits<small
+                    >Save the splits you use often, like Electricity 50/25/25,
+                    and pick them in one tap</small
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+        </div>
       </div>
     </main>
 
