@@ -215,6 +215,7 @@
         <div class="body">
           <p>Open the group, tap the <b class="ui">⋯</b> button at the top right and choose <b class="ui">Share an invite link</b>. Send the link however you like. When they open it, they sign up (or log in) and join the group.</p>
           <p>They can also go to <b class="ui">Groups</b>, tap <b class="ui">Join group</b> and paste the invite code or link.</p>
+          <p><b>Seeing and stopping invites.</b> Owners and co-owners can open <b class="ui">⋯</b> → <b class="ui">Invites</b> to see every link that still works, who shared it and when it ends. Each lasts 14 days. <b class="ui">Turn off</b> stops a link; <b class="ui">Replace</b> turns it off and shares a new one.</p>
           <p class="tip">You don't have to wait for people to join. Add them by name now (see the next question) and start adding expenses straight away.</p>
         </div>
       </details>
@@ -224,7 +225,8 @@
         <div class="body">
           <p>Yes. Anyone can be added to a group by name, as a <b>guest</b>. Guests don't need the app, and you can include them in expenses and payments like anyone else. They show with a dashed outline in the group.</p>
           <p><b>Their own view link.</b> Tap a guest's face in the group and use <b class="ui">Share [name]'s link</b>. It opens a private page in their web browser showing their balance, who they pay or get paid by, the expenses they're part of, and the owner's PayID if they owe the owner. It's view only. The card shows when the link was last opened, and you can <b class="ui">Turn off link</b> at any time.</p>
-          <p><b>Joining later.</b> When a guest opens an invite link and signs up, <span class="sic">sic<span class="sic-dot">.</span></span> asks "Are you one of these people?". They pick their name and keep their whole history.</p>
+          <p><b>Joining later.</b> Tap the guest's face and use <b class="ui">Invite [name] to join</b>. That invite is just for them: whoever uses it joins as that guest and keeps their whole history. A general group link always joins people as themselves, so nobody can take a guest's place with it.</p>
+          <p><b>Already joined with a group link?</b> The owner or a co-owner can tap the guest's face and use <b class="ui">[name] has joined? Link them to their account</b>. Everything recorded for the guest moves to that person. If the wrong person was linked, <b class="ui">Wrong person? Undo</b> in Notifications puts it back.</p>
         </div>
       </details>
 
@@ -325,7 +327,7 @@
       <details id="edit-expense">
         <summary>How do I edit or delete an expense?</summary>
         <div class="body">
-          <p>Tap the expense to open it, then tap <b class="ui">Edit</b> or <b class="ui">Delete</b>. When you edit, the old version is kept in the expense's history so everyone can see what changed. Balances update straight away.</p>
+          <p>Tap the expense to open it, then tap <b class="ui">Edit</b> or <b class="ui">Delete</b>. When you edit, the old version is kept in the expense's history so everyone can see what changed. Deleting removes the expense for good, along with its receipt photo. Balances update straight away.</p>
           <p>Expenses in a closed group can't be changed until the group is reopened.</p>
         </div>
       </details>
@@ -350,7 +352,7 @@
         <summary>Where does my receipt photo go?</summary>
         <div class="body">
           <p>The first time you scan, <span class="sic">sic<span class="sic-dot">.</span></span> asks before any photo is sent to be read by Anthropic's Claude AI. Only the photo is sent, not your name or your group. If you decline, nothing is sent and you can type expenses in as usual. You can change this any time in <b class="ui">Profile</b> → <b class="ui">Receipt scanning</b>.</p>
-          <p>The photo is kept with the expense. Anyone who can see the expense can see it. To delete it, open the expense and tap <b class="ui">Remove photo</b>.</p>
+          <p>The photo is only stored when you save the expense; if you close the form without saving, nothing is kept. Once saved, it stays with the expense and anyone who can see the expense can see it. To delete it, open the expense and tap <b class="ui">Remove photo</b>. Deleting the expense, or your account, deletes the photos too. The details read from it (shop, items, amounts) stay on the expense.</p>
           <p>More in the <a href="/privacy">privacy policy</a>.</p>
         </div>
       </details>
@@ -488,9 +490,10 @@
         <div class="body">
           <p>Go to <b class="ui">Profile</b> → <b class="ui">Security</b> → <b class="ui">Delete account</b> and enter your password to confirm.</p>
           <ul>
-            <li>You need to be settled up in every group first, so nobody is left out of pocket.</li>
+            <li>You don't need to settle up first. In each group you become "Deleted member 1" (or 2, 3…), and what you paid and owe stays, so everyone's balances still add up.</li>
+            <li>Your name, login, PayID, settings and receipt photos are deleted for good.</li>
+            <li>Payments waiting for you are confirmed by the group's owner or a co-owner instead.</li>
             <li>Groups you own pass to a co-owner, or otherwise to the longest-standing member.</li>
-            <li>Your name stays on past expenses so the group's history still makes sense.</li>
           </ul>
         </div>
       </details>
@@ -536,9 +539,9 @@
       </details>
 
       <details id="cant-leave">
-        <summary>I can't leave a group or delete my account</summary>
+        <summary>I can't leave a group</summary>
         <div class="body">
-          <p>You need to be settled up first. Check <b class="ui">To settle</b> on Home: pay back what you owe, and make sure any payments waiting to be confirmed have been confirmed.</p>
+          <p>You need to be settled up in that group first. (Deleting your account doesn't need this.) Check <b class="ui">To settle</b> on Home: pay back what you owe, and make sure any payments waiting to be confirmed have been confirmed.</p>
         </div>
       </details>
     </section>
