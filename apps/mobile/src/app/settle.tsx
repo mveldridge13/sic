@@ -6,9 +6,11 @@ import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Gutter, HeroScreen } from '@/components/dashboard';
-import { Bouncy, buzz, Confetti, MoneyFlow, SlideToConfirm } from '@/components/fun';
+import { Bouncy, buzz, Confetti, MoneyFlow } from '@/components/fun';
+import { SlideToConfirm } from '@/components/slide';
 import { Button, Field, Notice, Text } from '@/components/ui';
 import { PayIdCard } from '@/components/payid-card';
+import { WebColumn } from '@/components/web-column';
 import { useMyId } from '@/lib/auth';
 import { PAYID_CURRENCY, useCorrectSettlement, useNameOf, useRecordSettlement, useTallyData } from '@/lib/data';
 import { radius, space, useColors } from '@/theme';
@@ -163,43 +165,45 @@ export default function SettleScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: space.xl,
-            paddingTop: insets.top + space.xl,
-            gap: space.md,
-          }}>
-          <Animated.View
-            entering={ZoomIn.springify().damping(12)}
+        <WebColumn>
+          <View
             style={{
-              width: 112,
-              height: 112,
-              borderRadius: 56,
-              backgroundColor: c.surfaceAlt,
+              flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
+              padding: space.xl,
+              paddingTop: insets.top + space.xl,
+              gap: space.md,
             }}>
-            <Text style={{ fontSize: 52 }}>⏳</Text>
-          </Animated.View>
-          <Animated.View entering={ZoomIn.delay(120).springify().damping(14)}>
-            <Text variant="title" style={{ textAlign: 'center', fontSize: 28, lineHeight: 34 }}>
-              Sent to {receiver} to confirm
+            <Animated.View
+              entering={ZoomIn.springify().damping(12)}
+              style={{
+                width: 112,
+                height: 112,
+                borderRadius: 56,
+                backgroundColor: c.surfaceAlt,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Text style={{ fontSize: 52 }}>⏳</Text>
+            </Animated.View>
+            <Animated.View entering={ZoomIn.delay(120).springify().damping(14)}>
+              <Text variant="title" style={{ textAlign: 'center', fontSize: 28, lineHeight: 34 }}>
+                Sent to {receiver} to confirm
+              </Text>
+            </Animated.View>
+            <Text muted style={{ textAlign: 'center' }}>
+              {money(paid)} · {group.icon ? `${group.icon} ` : ''}
+              {group.name}
             </Text>
-          </Animated.View>
-          <Text muted style={{ textAlign: 'center' }}>
-            {money(paid)} · {group.icon ? `${group.icon} ` : ''}
-            {group.name}
-          </Text>
-          <Text variant="caption" muted style={{ textAlign: 'center' }}>
-            It counts once {receiver} confirms it arrived. We’ve let them know.
-          </Text>
-        </View>
-        <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg }}>
-          <Button label="Done" onPress={() => goBack()} />
-        </View>
+            <Text variant="caption" muted style={{ textAlign: 'center' }}>
+              It counts once {receiver} confirms it arrived. We’ve let them know.
+            </Text>
+          </View>
+          <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg }}>
+            <Button label="Done" onPress={() => goBack()} />
+          </View>
+        </WebColumn>
       </View>
     );
   }
@@ -215,40 +219,49 @@ export default function SettleScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         <Stack.Screen options={{ headerShown: false }} />
-        <View
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: space.xl,
-            paddingTop: insets.top + space.xl,
-            gap: space.md,
-          }}>
-          <Animated.View
-            entering={ZoomIn.springify().damping(12)}
-            style={{ width: 112, height: 112, borderRadius: 56, backgroundColor: c.warm, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 56, fontWeight: '800' }} color={c.primary}>
-              ✓
+        <WebColumn>
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: space.xl,
+              paddingTop: insets.top + space.xl,
+              gap: space.md,
+            }}>
+            <Animated.View
+              entering={ZoomIn.springify().damping(12)}
+              style={{
+                width: 112,
+                height: 112,
+                borderRadius: 56,
+                backgroundColor: c.warm,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Text style={{ fontSize: 56, fontWeight: '800' }} color={c.primary}>
+                ✓
+              </Text>
+            </Animated.View>
+            <Animated.View entering={ZoomIn.delay(120).springify().damping(14)}>
+              <Text variant="title" style={{ textAlign: 'center', fontSize: 28, lineHeight: 34 }}>
+                {headline}
+              </Text>
+            </Animated.View>
+            <Text muted style={{ textAlign: 'center' }}>
+              {square || !suggested
+                ? `${money(paid)} · ${group.icon ? `${group.icon} ` : ''}${group.name}`
+                : `${money(suggested - paid)} still to go in ${group.name}.`}
             </Text>
-          </Animated.View>
-          <Animated.View entering={ZoomIn.delay(120).springify().damping(14)}>
-            <Text variant="title" style={{ textAlign: 'center', fontSize: 28, lineHeight: 34 }}>
-              {headline}
+            <Text variant="caption" muted style={{ textAlign: 'center' }}>
+              Recorded wrong? You can undo it from Activity.
             </Text>
-          </Animated.View>
-          <Text muted style={{ textAlign: 'center' }}>
-            {square || !suggested
-              ? `${money(paid)} · ${group.icon ? `${group.icon} ` : ''}${group.name}`
-              : `${money(suggested - paid)} still to go in ${group.name}.`}
-          </Text>
-          <Text variant="caption" muted style={{ textAlign: 'center' }}>
-            Recorded wrong? You can undo it from Activity.
-          </Text>
-        </View>
-        {/* Clear the phone's navigation bar (and the status bar up top, on the view above). */}
-        <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg }}>
-          <Button label="Done" onPress={() => goBack()} />
-        </View>
+          </View>
+          {/* Clear the phone's navigation bar (and the status bar up top, on the view above). */}
+          <View style={{ padding: space.lg, paddingBottom: insets.bottom + space.lg }}>
+            <Button label="Done" onPress={() => goBack()} />
+          </View>
+        </WebColumn>
         <Confetti fire={confetti} />
       </View>
     );
